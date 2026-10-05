@@ -20,7 +20,7 @@ echo "Step 1: Building the application in Public Website mode..."
 VITE_BUILDER=false npm run build
 
 echo "Step 2: Cleaning the target directory (preserving .git and local data/)..."
-find "$PUBLIC_REPO_PATH" -mindepth 1 -maxdepth 1 -not -name ".git" -not -name "data" -exec rm -rf {} +
+find "$PUBLIC_REPO_PATH" -mindepth 1 -maxdepth 1 -not -name ".git" -not -name "data" -not -name "README.md" -exec rm -rf {} +
 
 echo "Step 3: Copying compiled static files to target directory..."
 cp -R dist/* "$PUBLIC_REPO_PATH"/
