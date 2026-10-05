@@ -87,21 +87,21 @@ function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
                 />
               </div>
               <div>
-                <label>Giocatore 1 (Nome, Email)</label>
+                <label>Giocatore 1 (Nome e cognome)</label>
                 <input 
                   type="text" 
                   value={player1} 
                   onChange={(e) => setPlayer1(e.target.value)} 
-                  placeholder="Nome Cognome, email@iit.it" 
+                  placeholder="Nome Cognome"
                 />
               </div>
               <div>
-                <label>Giocatore 2 (Nome, Email)</label>
+                <label>Giocatore 2 (Nome e cognome)</label>
                 <input 
                   type="text" 
                   value={player2} 
                   onChange={(e) => setPlayer2(e.target.value)} 
-                  placeholder="Nome Cognome, email@iit.it" 
+                  placeholder="Nome Cognome"
                 />
               </div>
               <div>
@@ -202,7 +202,7 @@ function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
                     <input 
                       type="text" 
                       value={t.player1 || ''} 
-                      placeholder="Nome Cognome, email"
+                      placeholder="Nome Cognome"
                       onChange={(e) => onUpdateTeam(t.id, { player1: e.target.value })}
                       style={{ width: '100%', fontSize: '12px', padding: '6px' }}
                     />
@@ -214,7 +214,7 @@ function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
                   <input 
                     type="text" 
                     value={t.player2 || ''} 
-                    placeholder="Nome Cognome, email"
+                    placeholder="Nome Cognome"
                     onChange={(e) => onUpdateTeam(t.id, { player2: e.target.value })}
                     style={{ width: '100%', fontSize: '12px', padding: '6px' }}
                   />

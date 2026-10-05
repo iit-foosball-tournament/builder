@@ -64,12 +64,30 @@ function App() {
 
   // Database state
   const [editions, setEditions] = useState(() => {
+    // Public deployments must never use stale browser drafts over the published roster.
+    if (!isBuilderAvailable) return databaseFallback.editions || {};
     try {
       const saved = localStorage.getItem('iit_foosball_editions');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed['2026'] && parsed['2026'].teams && parsed['2026'].teams.length > 0) {
-          return parsed;
+        if (parsed['2026']?.teams?.length) {
+          // Upgrade old drafts without losing edited results, photos or name-only edits.
+          const canonical = new Map(databaseFallback.editions['2026'].teams.map(team => [team.id, team]));
+          return {
+            ...parsed,
+            '2026': {
+              ...parsed['2026'],
+              teams: parsed['2026'].teams.map(team => {
+                const source = canonical.get(team.id);
+                if (!source) return team;
+                return {
+                  ...team,
+                  player1: !team.player1?.trim() || team.player1.includes('@') ? source.player1 : team.player1,
+                  player2: !team.player2?.trim() || team.player2.includes('@') ? source.player2 : team.player2
+                };
+              })
+            }
+          };
         }
       }
     } catch (e) {
@@ -97,35 +115,29 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Fetch ./data/data.json at runtime for public site deployment updates
+  // Published JSON is authoritative for public visitors, including returning visitors.
   useEffect(() => {
+    if (isBuilderAvailable) return;
+    let cancelled = false;
     const loadRuntimeData = async () => {
       try {
         const res = await fetch('./data/data.json');
-        if (res.ok) {
-          const contentType = res.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const runtimeData = await res.json();
-            if (runtimeData && runtimeData.editions && runtimeData.editions['2026']) {
-              setEditions(prev => {
-                const localSaved = localStorage.getItem('iit_foosball_editions');
-                if (!localSaved) {
-                  return runtimeData.editions;
-                }
-                return prev;
-              });
-            }
-          }
+        if (!res.ok) return;
+        const runtimeData = await res.json();
+        if (!cancelled && runtimeData?.editions?.['2026']?.teams?.length) {
+          setEditions(runtimeData.editions);
         }
       } catch (err) {
         console.log('Using local fallback database:', err.message);
       }
     };
     loadRuntimeData();
+    return () => { cancelled = true; };
   }, []);
 
-  // Persist editions to localStorage
+  // Only the builder stores local drafts; public visitors never overwrite them.
   useEffect(() => {
+    if (!isBuilderAvailable) return;
     try {
       if (editions && Object.keys(editions).length > 0) {
         localStorage.setItem('iit_foosball_editions', JSON.stringify(editions));

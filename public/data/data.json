@@ -28,8 +28,8 @@
           "num": 1,
           "name": "I PUPI DEI CARUGGI",
           "logoColor": "#2563eb",
-          "player1": "Niccolò Silvestri, niccolo.silvestri@iit.it",
-          "player2": "Filippo Drago, filippo.drago@iit.it",
+          "player1": "Niccolò Silvestri",
+          "player2": "Filippo Drago",
           "photo": ""
         },
         {
@@ -37,8 +37,8 @@
           "num": 2,
           "name": "I SECONDI PALI",
           "logoColor": "#dc2626",
-          "player1": "Francesco Semeraro francesco.semeraro@iit.it",
-          "player2": "Luca Zanetti luca.zanetti@iit.it",
+          "player1": "Francesco Semeraro",
+          "player2": "Luca Zanetti",
           "photo": ""
         },
         {
@@ -46,8 +46,8 @@
           "num": 3,
           "name": "SOFTENHAM FOOSBALL SQUAD A",
           "logoColor": "#16a34a",
-          "player1": "Zeyu, Long, zeyu.long@iit.it",
-          "player2": "Anas, Abuahaker, anasabushaker@iit.it",
+          "player1": "Zeyu Long",
+          "player2": "Anas Abushaker",
           "photo": ""
         },
         {
@@ -55,8 +55,8 @@
           "num": 4,
           "name": "SOFTENHAM JUNIOR HOT-RODS",
           "logoColor": "#d97706",
-          "player1": "Muhammad Awais, muhammad.awais@iit.it",
-          "player2": "Zhengyin Du, zhengyin.du@iit.it",
+          "player1": "Muhammad Awais",
+          "player2": "Zhengyin Du",
           "photo": ""
         },
         {
@@ -64,8 +64,8 @@
           "num": 5,
           "name": "STECCATA MORBIDA",
           "logoColor": "#7c3aed",
-          "player1": "Marco Meschini, marco.meschini@iit.it",
-          "player2": "Andrea Fortuna, andrea.fortuna@iit.it",
+          "player1": "Marco Meschini",
+          "player2": "Andrea Fortuna",
           "photo": ""
         },
         {
@@ -73,8 +73,8 @@
           "num": 6,
           "name": "GOLOCIOK",
           "logoColor": "#db2777",
-          "player1": "Luigi, Pedata, luigi.pedata@iit.it",
-          "player2": "Matilde, Mazzini, matilde.mazzini@iit.it",
+          "player1": "Luigi Pedata",
+          "player2": "Matilde Mazzini",
           "photo": ""
         },
         {
@@ -82,8 +82,8 @@
           "num": 7,
           "name": "TOP TOP",
           "logoColor": "#0891b2",
-          "player1": "Tiziano Castagnella, tiziano.castagnella@iit.it",
-          "player2": "Adriana Di Biase, adriana.dibiase@iit.it",
+          "player1": "Tiziano Castagnella",
+          "player2": "Adriana Di Biase",
           "photo": ""
         },
         {
@@ -100,8 +100,8 @@
           "num": 9,
           "name": "I FIGGI DE CIM D’RAP",
           "logoColor": "#4f46e5",
-          "player1": "calogero.boscarini@iit.it",
-          "player2": "simone.nitti@iit.it",
+          "player1": "Calogero Boscarini",
+          "player2": "Simone Nitti",
           "photo": ""
         },
         {
@@ -136,8 +136,8 @@
           "num": 13,
           "name": "BENCHWARMERS",
           "logoColor": "#b45309",
-          "player1": "ali, haji ebrahim zargar, ali.hajiebrahim@iit.it",
-          "player2": "Simon, Frederik Muller-Cleve, simon.mullercleve@iit.it",
+          "player1": "ali haji ebrahim zargar",
+          "player2": "Simon Frederik Muller-Cleve",
           "photo": ""
         },
         {
@@ -145,8 +145,8 @@
           "num": 14,
           "name": "MUFFINS",
           "logoColor": "#0284c7",
-          "player1": "Carolina Gay carolina.gay@iit.it",
-          "player2": "Altair Coutinho altair.salescoutinho@iit.it",
+          "player1": "Carolina Gay",
+          "player2": "Altair Coutinho",
           "photo": ""
         },
         {
@@ -154,8 +154,8 @@
           "num": 15,
           "name": "DOUBLEP",
           "logoColor": "#0d9488",
-          "player1": "Andrea Piccardo andrea.piccardo@iit.it",
-          "player2": "Pietro Palazzo pietro.palazzo@iit.it",
+          "player1": "Andrea Piccardo",
+          "player2": "Pietro Palazzo",
           "photo": ""
         },
         {
@@ -163,8 +163,8 @@
           "num": 16,
           "name": "I NANO PORI",
           "logoColor": "#9333ea",
-          "player1": "Andrea Giovanale, Andrea.giovanale@iit.it",
-          "player2": "Julien Maxime Hurtaud, Julien.hurtaud@iit.it",
+          "player1": "Andrea Giovanale",
+          "player2": "Julien Maxime Hurtaud",
           "photo": ""
         },
         {
@@ -181,8 +181,8 @@
           "num": 18,
           "name": "GLI SBOMBOLOTTI",
           "logoColor": "#e11d48",
-          "player1": "mattia modenese mattia.modenese@iit.it",
-          "player2": "Francesco Belgrano francesco.belgrano@iit.it",
+          "player1": "mattia modenese",
+          "player2": "Francesco Belgrano",
           "photo": ""
         },
         {
@@ -190,8 +190,8 @@
           "num": 19,
           "name": "007-030",
           "logoColor": "#1d4ed8",
-          "player1": "Sophia Victoria Ochoa Meza sophia.ochoameza@iit.it (Iscritta come: Fatine)",
-          "player2": "Adele Tontodonati adele.tontodonati@iit.it",
+          "player1": "Marco Jacono",
+          "player2": "Alessandro Bruchi",
           "photo": ""
         },
         {
@@ -199,8 +199,8 @@
           "num": 20,
           "name": "GLI SCRACCY",
           "logoColor": "#15803d",
-          "player1": "",
-          "player2": "",
+          "player1": "Matilde Brozzo",
+          "player2": "Alessandro Di Girolamo",
           "photo": ""
         },
         {
@@ -208,8 +208,8 @@
           "num": 21,
           "name": "REAL-BILITATI",
           "logoColor": "#b91c1c",
-          "player1": "",
-          "player2": "",
+          "player1": "Francesco De Donato",
+          "player2": "Gianluca Capitta",
           "photo": ""
         },
         {
@@ -217,8 +217,8 @@
           "num": 22,
           "name": "BDB",
           "logoColor": "#6d28d9",
-          "player1": "",
-          "player2": "",
+          "player1": "Laura Russo",
+          "player2": "Martina Morazzoni",
           "photo": ""
         },
         {
@@ -226,8 +226,8 @@
           "num": 23,
           "name": "MONSTER ULTRA",
           "logoColor": "#0369a1",
-          "player1": "",
-          "player2": "",
+          "player1": "Marco Ricci",
+          "player2": "Mattia Lizzano",
           "photo": ""
         },
         {
@@ -235,8 +235,8 @@
           "num": 24,
           "name": "SMART FEET",
           "logoColor": "#0f766e",
-          "player1": "",
-          "player2": "",
+          "player1": "Gabriele Intermite",
+          "player2": "Elise Allix-Desfautaux",
           "photo": ""
         },
         {
@@ -244,8 +244,8 @@
           "num": 25,
           "name": "BITTER CATS",
           "logoColor": "#c2410c",
-          "player1": "",
-          "player2": "",
+          "player1": "Matteo Trapani",
+          "player2": "Massimiliano Gatti",
           "photo": ""
         },
         {
@@ -253,8 +253,8 @@
           "num": 26,
           "name": "UPUPE",
           "logoColor": "#374151",
-          "player1": "",
-          "player2": "",
+          "player1": "Costanza Demergasso",
+          "player2": "Emanuela Cepolina",
           "photo": ""
         },
         {
@@ -262,8 +262,8 @@
           "num": 27,
           "name": "THE TARDIES",
           "logoColor": "#475569",
-          "player1": "",
-          "player2": "",
+          "player1": "Sara Zeynalpour",
+          "player2": "Francesco Bianchin",
           "photo": ""
         },
         {
@@ -271,8 +271,8 @@
           "num": 28,
           "name": "LAS TIGRILLAS",
           "logoColor": "#6b7280",
-          "player1": "",
-          "player2": "",
+          "player1": "Sophia Victoria Ochoa Meza",
+          "player2": "Noemi Vassallo",
           "photo": ""
         },
         {
@@ -280,8 +280,8 @@
           "num": 29,
           "name": "SBARAGLIA",
           "logoColor": "#0284c7",
-          "player1": "",
-          "player2": "",
+          "player1": "Gianluca Bosi",
+          "player2": "Andrea Cherubini",
           "photo": ""
         },
         {
@@ -289,8 +289,8 @@
           "num": 30,
           "name": "LAST-MINUTE CREW",
           "logoColor": "#3b82f6",
-          "player1": "",
-          "player2": "",
+          "player1": "Adele Tontodonati",
+          "player2": "Giada Ierardi",
           "photo": ""
         }
       ],
