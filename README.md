@@ -1,95 +1,85 @@
-# IIT Soccer Tournament - Builder Workspace
+# IIT Foosball Tournament 2026 — Builder & Manager Workspace
 
-This is the administrative builder workspace for the **IIT Soccer Tournament**. It is a React + Vite application that operates in **Builder Mode** to edit, manage, and compile tournament databases, rules, matches, and images, and exports them as a static tournament database ZIP bundle.
+Workspace di sviluppo e gestione amministrativa per il **Torneo di Calcio Balilla IIT 2026 (Stile Tradizionale · Double Open)**.
+Basato su React 19 + Vite, include la modalità **Builder Mode** per la gestione autonoma di partite, classifiche, squadre e caricamento foto ufficiali, con esportazione automatica per il sito pubblico GitHub Pages.
 
-The compiled public website is hosted in a separate repository: **[iit-soccer-tournament.github.io](https://github.com/iit-soccer-tournament/iit-soccer-tournament.github.io)**.
-
----
-
-## Architecture Overview
-
-```
-                        ┌──────────────────────────────┐
-                        │    IIT Tournament Builder    │
-                        │ (iit-soccer-tournament/builder)│
-                        └──────────────┬───────────────┘
-                                       │
-                                       │ (1) Export ZIP
-                                       ▼
-                             ┌───────────────────┐
-                             │ database_data.zip │
-                             └─────────┬─────────┘
-                                       │
-                                       │ (2) Extract to ./data
-                                       ▼
-              ┌──────────────────────────────────────────────────┐
-              │              Public Static Website               │
-              │ (iit-soccer-tournament.github.io)                │
-              └──────────────────────────────────────────────────┘
-```
-
-1. **Builder Mode (This Repo)**: An administrative web tool configured to edit tournament years, schedules, scorers, and upload custom trophy images. All updates are stored reactively in `localStorage`. Once you are done editing, export your changes as a database ZIP file.
-2. **Public Website (Deployed Repo)**: A lightweight, soccer-themed presentation site that fetches the unzipped database `./data/data.json` at runtime.
+Il sito statico pubblico compilato per GitHub Pages si trova nel repository gemello: **`iit-foosball-tournament.github.io`**.
 
 ---
 
-## Local Development
+## 📐 Architettura delle 2 Repository
 
-1. Install dependencies:
+```
+                    ┌─────────────────────────────────────────┐
+                    │   iit-foosball-tournament/builder       │
+                    │   (Pannello di controllo & CMS locale)  │
+                    └────────────────────┬────────────────────┘
+                                         │
+             ┌───────────────────────────┴───────────────────────────┐
+             │                                                       │
+             ▼ [Opzione A: Script rapido]                            ▼ [Opzione B: ZIP manuale]
+    ./publish_public.sh                                     Esporta ZIP Bundle
+             │                                                       │
+             ▼                                                       ▼
+┌─────────────────────────────────────────┐         ┌─────────────────────────────────┐
+│ iit-foosball-tournament.github.io       │ ◄───────┤ Estrai data.json & images/     │
+│ (Sito statico deployato su GH Pages)    │         │ in ./data                       │
+└─────────────────────────────────────────┘         └─────────────────────────────────┘
+```
+
+1. **`builder` (Questa repo)**: Ambiente completo con Builder Mode. Permette di registrare i risultati, caricare le foto delle 30 squadre, visualizzare l'anteprima live ed esportare il database.
+2. **`iit-foosball-tournament.github.io`**: Repository del sito statico pubblico ottimizzato per GitHub Pages, con fallback incorporato e caricamento dinamico di `./data/data.json`.
+
+---
+
+## 🚀 Avvio Locale
+
+1. Installa le dipendenze:
    ```bash
    npm install
    ```
-
-2. Run the development server:
+2. Avvia il server di sviluppo:
    ```bash
    npm run dev
    ```
-
-3. Open `http://localhost:5173` to access the builder workspace.
-
----
-
-## How to Edit & Publish Updates
-
-### Step 1: Manage and Edit in the Builder
-1. Run the builder workspace locally or navigate to your hosted builder URL.
-2. Update seasons, scores, rules, pitches, and register teams/trophies.
-3. Use the **Live Preview Site** button to check how changes will look on the public website.
-
-### Step 2: Export the Database Bundle
-1. In the builder navbar, click **Export ZIP Bundle**.
-2. This downloads a file named `iit_soccer_database_YYYY-MM-DD.zip` containing `data.json` and the uploaded trophy/pitch images inside an `images/` directory.
-
-### Step 3: Unzip and Commit to Public Site Repo
-1. Extract the downloaded ZIP file.
-2. Place the contents (`data.json` and the `images/` folder) into the `data/` directory of your **iit-soccer-tournament.github.io** repository clone.
-3. Commit and push the public site repo to deploy the changes to GitHub Pages:
-   ```bash
-   git add data/
-   git commit -m "Update tournament database"
-   git push origin main
-   ```
+3. Apri il browser all'indirizzo `http://localhost:5173`.
+   - Clicca sul pulsante **"Builder / Gestione"** in alto a destra (oppure naviga su `http://localhost:5173/#/builder`) per entrare nel pannello di amministrazione.
+   - Clicca su **"Anteprima Sito Live"** per vedere esattamente come appare il sito per i colleghi.
 
 ---
 
-## Building and Publishing Code Updates
+## 📋 Guida Operativa per il Collega (Come Aggiornare Tutto)
 
-If you make modifications to the React code, styles, or templates in the builder workspace, you will need to push the source code changes to the builder repo and compile the static assets for the public website.
+### 1. Inserimento Risultati Partite
+- Quando i colleghi inviano via e-mail l'esito della partita (a `filippo.drago@iit.it`, `simone.nitti@iit.it`, `calogero.boscarini@iit.it` con gli avversari in CC):
+- Apri il Builder alla scheda **"⚽ Risultati & Partite"**.
+- Seleziona la **Giornata** (1..29) o cerca il nome della squadra.
+- Inserisci i gol realizzati (es. `10` a `7`, o `9` a `9` per pareggio).
+- La partita viene marcata come completata e la **Classifica (Punti, Differenza Reti, Vittorie)** si ricalcola istantaneamente!
 
-### Publish Source to Builder Repository
+### 2. Caricamento Foto Squadre
+- Ricevuta o scattata la foto di una coppia/squadra:
+- Apri la scheda **"👥 Squadre & Foto"**.
+- Clicca su **"Carica Foto"** sulla scheda della squadra desiderata e seleziona l'immagine dal computer.
+- L'anteprima viene aggiornata e memorizzata.
+
+### 3. Pubblicazione Online (Deploy sul sito pubblico)
+#### Metodo Rapido (1 comando):
+Dalla cartella `builder`, esegui:
 ```bash
+./publish_public.sh ../iit-foosball-tournament.github.io
+cd ../iit-foosball-tournament.github.io
 git add .
-git commit -m "Describe code changes"
+git commit -m "Aggiornamento risultati e foto"
 git push origin main
 ```
+In ~60 secondi il sito online su GitHub Pages sarà aggiornato con i nuovi punteggi!
 
-### Publish Compiled Assets to Public Site Repository
-We have included a helper script `publish_public.sh` to compile the app in **Public Website Mode** (hiding the builder, disabling localStorage caching, and enabling runtime fetching of `./data/data.json`) and copy the assets to your local public repo clone:
+---
 
-```bash
-./publish_public.sh <path_to_local_public_site_clone>
-# Example:
-./publish_public.sh ../iit-soccer-tournament.github.io
-```
-
-Go to your local `iit-soccer-tournament.github.io` repository clone directory, inspect the updated files, commit, and push to deploy the new static code changes.
+## 🏆 Regole e Formato del Torneo Integrati
+- **Formula:** Girone unico da 30 squadre (29 giornate, 435 partite).
+- **Punteggio:** Vittoria a 10 gol (3 punti), Pareggio a 9-9 (1 punto a testa), Sconfitta (0 punti).
+- **Criteri parità:** 1° Differenza Reti &rarr; 2° Scontro Diretto &rarr; 3° Gol Fatti.
+- **Fase Finale:** Le prime **8 classificate** si qualificano ai Quarti di finale (QF1: 1ª vs 8ª, QF2: 4ª vs 5ª, QF3: 2ª vs 7ª, QF4: 3ª vs 6ª), Semifinali, Finale 3° posto e Finalissima. Nei playoff vige la regola dei vantaggi (scarto di 2 gol sul 9-9, nessun pareggio).
+- **Orari Mensa Morego:** 08:00 – 15:00.
