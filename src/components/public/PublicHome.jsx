@@ -1,60 +1,49 @@
 import React from 'react';
-import { Calendar, Trophy, Users, ShieldAlert, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
-import KnockoutBracket from './KnockoutBracket';
+import { Calendar, Trophy, Users, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
 
-function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavigateTab }) {
+function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavigateTab, t, lang }) {
   const matches = edition.matches || [];
   
-  // Filter scheduled and played matches
   const scheduledMatches = matches.filter(m => m.status === 'scheduled');
   const playedMatches = matches.filter(m => m.status === 'played');
 
-  // Next scheduled matches (up to 6)
   const nextMatches = scheduledMatches.slice(0, 6);
-
-  // Latest played matches (last 6)
   const recentResults = [...playedMatches].reverse().slice(0, 6);
-
-  // Top 4 in standings for quick preview
   const topTeams = standings.slice(0, 4);
 
   return (
     <div className="home-dashboard">
-      {/* Hero Welcome Banner */}
+      {/* Hero Welcome Glassmorphic Banner */}
       <section className="hero-banner">
-        <div className="hero-overlay"></div>
         <div className="hero-content">
           <div className="hero-badges">
-            <span className="badge badge-primary">Edizione 2026</span>
-            <span className="badge badge-accent">Double Open</span>
-            <span className="badge badge-subtle">Stile Tradizionale</span>
+            <span className="badge badge-primary">{t.badgeEdition}</span>
+            <span className="badge badge-accent">{t.badgeFormat}</span>
+            <span className="badge badge-subtle">{t.badgeStyle}</span>
           </div>
-          <h1 className="hero-title">IIT Foosball Tournament 2026</h1>
-          <p className="hero-subtitle">
-            Campionato ufficiale di Calcio Balilla dell'Istituto Italiano di Tecnologia. 
-            30 Squadre · 29 Giornate · 435 Partite · Fase Finale a Eliminazione Diretta (Top 8).
-          </p>
+          <h1 className="hero-title">{t.heroTitle}</h1>
+          <p className="hero-subtitle">{t.heroSubtitle}</p>
 
           <div className="hero-info-pills">
             <div className="info-pill">
               <MapPin size={16} className="pill-icon" />
-              <span>Tavolo Sala Mensa CCT Morego</span>
+              <span>{t.canteenLocation}</span>
             </div>
             <div className="info-pill">
               <Clock size={16} className="pill-icon" />
-              <span>Orario di gioco: 08:00 – 15:00</span>
+              <span>{t.accessHours}</span>
             </div>
           </div>
 
           <div className="hero-cta-group">
             <button className="cta-btn primary-btn" onClick={() => onNavigateTab('calendar')}>
-              <Calendar size={18} /> Vedi Calendario
+              <Calendar size={18} /> {t.btnViewCalendar}
             </button>
             <button className="cta-btn secondary-btn" onClick={() => onNavigateTab('standings')}>
-              <Trophy size={18} /> Classifica Live
+              <Trophy size={18} /> {t.btnLiveStandings}
             </button>
             <button className="cta-btn outline-btn" onClick={() => onNavigateTab('teams')}>
-              <Users size={18} /> Squadre & Foto
+              <Users size={18} /> {t.btnTeamsPhotos}
             </button>
           </div>
         </div>
@@ -64,22 +53,22 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
       <section className="stats-bar">
         <div className="stat-card">
           <span className="stat-number">{edition.teams?.length || 30}</span>
-          <span className="stat-label">Squadre Iscritte</span>
+          <span className="stat-label">{t.statTeams}</span>
         </div>
         <div className="stat-divider"></div>
         <div className="stat-card">
           <span className="stat-number">29</span>
-          <span className="stat-label">Giornate di Campionato</span>
+          <span className="stat-label">{t.statRounds}</span>
         </div>
         <div className="stat-divider"></div>
         <div className="stat-card">
           <span className="stat-number">{playedMatches.length} / {matches.length}</span>
-          <span className="stat-label">Partite Disputate</span>
+          <span className="stat-label">{t.statPlayed}</span>
         </div>
         <div className="stat-divider"></div>
         <div className="stat-card">
           <span className="stat-number">8</span>
-          <span className="stat-label">Posti Playoff (Top 8)</span>
+          <span className="stat-label">{t.statPlayoffs}</span>
         </div>
       </section>
 
@@ -90,10 +79,10 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
           <div className="grid-card-header">
             <div className="header-title">
               <Trophy size={20} className="text-warning" />
-              <h3>Classifica (Top 4)</h3>
+              <h3>{t.topStandingsTitle}</h3>
             </div>
             <button className="link-button" onClick={() => onNavigateTab('standings')}>
-              Vedi tutta <ChevronRight size={16} />
+              {t.viewAll} <ChevronRight size={16} />
             </button>
           </div>
           <div className="grid-card-body">
@@ -101,13 +90,13 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
               <table className="mini-standings-table">
                 <thead>
                   <tr>
-                    <th>Pos</th>
-                    <th className="text-left">Squadra</th>
-                    <th>G</th>
-                    <th>V</th>
-                    <th>N</th>
-                    <th>P</th>
-                    <th>PT</th>
+                    <th>{t.thRank}</th>
+                    <th className="text-left">{t.thTeam}</th>
+                    <th>{t.thPlayed}</th>
+                    <th>{t.thWon}</th>
+                    <th>{t.thDrawn}</th>
+                    <th>{t.thLost}</th>
+                    <th>{t.thPoints}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -130,10 +119,10 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
                 </tbody>
               </table>
             ) : (
-              <p className="empty-message">Nessuna partita giocata finora. La classifica si aggiornerà con i primi risultati!</p>
+              <p className="empty-message">{t.noMatchesYet}</p>
             )}
             <div className="playoff-info-note">
-              <Award size={14} /> Le prime 8 squadre al termine delle 29 giornate si qualificano alla Fase Finale (Quarti di finale).
+              <Award size={14} /> {t.topEightNote}
             </div>
           </div>
         </div>
@@ -143,10 +132,10 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
           <div className="grid-card-header">
             <div className="header-title">
               <Calendar size={20} className="text-accent" />
-              <h3>Prossimi Incontri in Programma</h3>
+              <h3>{t.upcomingTitle}</h3>
             </div>
             <button className="link-button" onClick={() => onNavigateTab('calendar')}>
-              Tutto il Calendario <ChevronRight size={16} />
+              {t.fullCalendar} <ChevronRight size={16} />
             </button>
           </div>
           <div className="grid-card-body">
@@ -156,7 +145,7 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
                   <div key={m.id} className="mini-match-row">
                     <div className="match-meta-tag">
                       <span className="round-badge">{m.round}</span>
-                      {m.date ? <span className="date-badge">{m.date} {m.time}</span> : <span className="tbd-badge">Da concordare</span>}
+                      {m.date ? <span className="date-badge">{m.date} {m.time}</span> : <span className="tbd-badge">{t.tbScheduled}</span>}
                     </div>
                     <div className="match-teams-display">
                       <span className="team-name team-home">{m.team1}</span>
@@ -167,7 +156,7 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
                 ))}
               </div>
             ) : (
-              <p className="empty-message">Tutti gli incontri sono stati disputati o nessun incontro in programma.</p>
+              <p className="empty-message">{t.allPlayedOrEmpty}</p>
             )}
           </div>
         </div>
@@ -179,10 +168,10 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
           <div className="grid-card-header">
             <div className="header-title">
               <Flame size={20} className="text-danger" />
-              <h3>Ultimi Risultati Registrati</h3>
+              <h3>{t.recentResultsTitle}</h3>
             </div>
             <button className="link-button" onClick={() => onNavigateTab('results')}>
-              Tutti i Risultati <ChevronRight size={16} />
+              {t.allResults} <ChevronRight size={16} />
             </button>
           </div>
           <div className="grid-card-body">
@@ -206,14 +195,14 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
                       </div>
                     </div>
                     {m.score1 === 9 && m.score2 === 9 && (
-                      <div className="draw-pill">Pareggio (1 pt)</div>
+                      <div className="draw-pill">{t.drawPill}</div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="waiting-results-notice">
-                <p>Nessun risultato ancora registrato. Non appena le squadre completeranno le prime partite, i risultati appariranno qui!</p>
+                <p>{t.waitingResultsText}</p>
               </div>
             )}
           </div>
@@ -226,16 +215,14 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
           <Mail size={32} />
         </div>
         <div className="notice-content">
-          <h4>Come comunicare i risultati delle partite?</h4>
+          <h4>{t.noticeTitle}</h4>
           <p>
-            Al termine di ogni incontro, il mittente deve obbligatoriamente inviare un'e-mail a:
-            <strong> filippo.drago@iit.it</strong>, <strong>simone.nitti@iit.it</strong> e <strong>calogero.boscarini@iit.it</strong>
-            con oggetto <code>Table football tournament</code>, mettendo <strong>obbligatoriamente in CC tutti gli avversari</strong> e indicando i nomi delle squadre e il punteggio finale.
+            {t.noticeTextBefore} <strong>filippo.drago@iit.it</strong>, <strong>simone.nitti@iit.it</strong>, <strong>calogero.boscarini@iit.it</strong> {t.noticeSubject} <code>Table football tournament</code>, {t.noticeCc}
           </p>
         </div>
         <div className="notice-action">
           <button className="cta-btn secondary-btn" onClick={() => onNavigateTab('rules')}>
-            Leggi il Regolamento
+            {t.readRulesBtn}
           </button>
         </div>
       </section>

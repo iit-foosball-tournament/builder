@@ -1,17 +1,17 @@
 #!/bin/bash
-
-# Exit on error
 set -e
 
 echo "Step 1: Building the builder workspace..."
-npm run build
+VITE_BUILDER=true npm run build
 
-echo "Step 2: Publishing to gh-pages branch..."
+echo "Step 2: Publishing to gh-pages branch on iit-foosball-tournament/builder..."
 cd dist
-if [ ! -d .git ]; then
-    git init
-    git branch -m gh-pages
-fi
+rm -rf .git
+git init
+git branch -m gh-pages
+git remote add origin https://github.com/iit-foosball-tournament/builder.git
 git add .
-git commit -m "Deploy builder workspace" || true
-echo "Success! Builder compiled in dist/ folder."
+git commit -m "Deploy builder workspace"
+git push -f origin gh-pages
+
+echo "Success! Builder pushed to gh-pages branch."

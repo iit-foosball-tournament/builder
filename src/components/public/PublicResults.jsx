@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Flame, Filter, Search, Shield, CheckCircle, Clock, Trophy } from 'lucide-react';
 
-function PublicResults({ edition, getTeamName, getTeamColor }) {
+function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
   const [selectedRound, setSelectedRound] = useState('all');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -9,25 +9,20 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
   const matches = edition.matches || [];
   const teams = edition.teams || [];
 
-  // Filter played matches
   const playedMatches = useMemo(() => {
     return matches.filter(m => {
-      // Must be played
       if (m.status !== 'played') return false;
 
-      // Filter by round
       if (selectedRound !== 'all' && m.round !== selectedRound) {
         return false;
       }
 
-      // Filter by team
       if (selectedTeam !== 'all') {
         const teamMatch = m.team1.toLowerCase() === selectedTeam.toLowerCase() || 
                           m.team2.toLowerCase() === selectedTeam.toLowerCase();
         if (!teamMatch) return false;
       }
 
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesQuery = m.team1.toLowerCase().includes(q) || 
@@ -40,7 +35,6 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
     });
   }, [matches, selectedRound, selectedTeam, searchQuery]);
 
-  // Group by round
   const resultsByRound = useMemo(() => {
     const groups = {};
     playedMatches.forEach(m => {
@@ -57,17 +51,21 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
     roundsList.push(`Giornata ${i}`);
   }
 
+  const formatRoundTitle = (roundName) => {
+    if (lang === 'en') {
+      return roundName.replace('Giornata', 'Round');
+    }
+    return roundName;
+  };
+
   return (
     <div className="results-page">
       <div className="page-header">
         <div className="page-header-text">
           <h2>
-            <Flame className="page-icon text-danger" /> Risultati di Tutte le Partite
+            <Flame className="page-icon text-danger" /> {t.resultsPageTitle}
           </h2>
-          <p className="page-description">
-            Visualizza tutti i risultati ufficiali registrati nel campionato.
-            Vittoria a 10 gol (3 punti), Pareggio a 9-9 (1 punto a testa).
-          </p>
+          <p className="page-description">{t.resultsPageDesc}</p>
         </div>
       </div>
 
@@ -76,41 +74,41 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
         <div className="filter-row">
           {/* Round Selector */}
           <div className="filter-item">
-            <label><Filter size={14} /> Filtra per Giornata:</label>
+            <label><Filter size={14} /> {t.filterRoundLabel}</label>
             <select 
               value={selectedRound} 
               onChange={e => setSelectedRound(e.target.value)}
               className="filter-select"
             >
-              <option value="all">Tutte le Giornate</option>
+              <option value="all">{t.allRounds}</option>
               {roundsList.map(r => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>{formatRoundTitle(r)}</option>
               ))}
             </select>
           </div>
 
           {/* Team Selector */}
           <div className="filter-item">
-            <label><Shield size={14} /> Filtra per Squadra:</label>
+            <label><Shield size={14} /> {t.filterTeamLabel}</label>
             <select 
               value={selectedTeam} 
               onChange={e => setSelectedTeam(e.target.value)}
               className="filter-select"
             >
-              <option value="all">Tutte le 30 Squadre</option>
-              {teams.map(t => (
-                <option key={t.id || t.name} value={t.name}>{t.name}</option>
+              <option value="all">{t.allTeams}</option>
+              {teams.map(tItem => (
+                <option key={tItem.id || tItem.name} value={tItem.name}>{tItem.name}</option>
               ))}
             </select>
           </div>
 
           {/* Free Text Search */}
           <div className="filter-item search-item">
-            <label><Search size={14} /> Cerca Squadra:</label>
+            <label><Search size={14} /> {t.searchTeamLabel}</label>
             <div className="search-input-wrap">
               <input 
                 type="text" 
-                placeholder="Cerca squadra..." 
+                placeholder={t.searchPlaceholder} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -124,13 +122,13 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
 
         {/* Quick summary line */}
         <div className="filter-summary">
-          <span>Partite completate mostrate: <strong>{playedMatches.length}</strong></span>
+          <span>{t.completedMatchesCount} <strong>{playedMatches.length}</strong></span>
           {(selectedRound !== 'all' || selectedTeam !== 'all' || searchQuery) && (
             <button 
               className="reset-filters-btn" 
               onClick={() => { setSelectedRound('all'); setSelectedTeam('all'); setSearchQuery(''); }}
             >
-              Azzera Filtri
+              {t.resetFilters}
             </button>
           )}
         </div>
@@ -142,8 +140,8 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
           {Object.entries(resultsByRound).map(([roundName, roundResults]) => (
             <div key={roundName} className="round-group-card">
               <div className="round-group-header">
-                <h3>{roundName}</h3>
-                <span className="round-match-count">{roundResults.length} partite completate</span>
+                <h3>{formatRoundTitle(roundName)}</h3>
+                <span className="round-match-count">{roundResults.length} {t.completedMatchesLabel}</span>
               </div>
               <div className="results-grid">
                 {roundResults.map(m => {
@@ -157,7 +155,7 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
                     <div key={m.id} className="result-match-card">
                       <div className="result-meta-top">
                         <span className="status-pill played">
-                          <CheckCircle size={12} /> Finale
+                          <CheckCircle size={12} /> {t.statusFinal}
                         </span>
                         {m.date && <span className="date-info">{m.date}</span>}
                       </div>
@@ -184,10 +182,10 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
 
                       <div className="result-outcome-footer">
                         {isDraw ? (
-                          <span className="outcome-pill draw">Pareggio (1 pt a testa)</span>
+                          <span className="outcome-pill draw">{t.drawResultFooter}</span>
                         ) : (
                           <span className="outcome-pill victory">
-                            <Trophy size={12} /> Vincente: {team1Won ? m.team1 : m.team2} (3 pt)
+                            <Trophy size={12} /> {t.victoryResultFooter} {team1Won ? m.team1 : m.team2}
                           </span>
                         )}
                       </div>
@@ -201,11 +199,8 @@ function PublicResults({ edition, getTeamName, getTeamColor }) {
       ) : (
         <div className="no-matches-found">
           <Clock size={48} className="text-muted mb-2" />
-          <h3>Nessun risultato ancora registrato</h3>
-          <p>
-            Le partite non sono ancora state giocate o i risultati devono ancora essere inseriti dal gestore del torneo.
-            Non appena i match saranno disputati e registrati, le schede con i punteggi compariranno automaticamente qui.
-          </p>
+          <h3>{t.noResultsFound}</h3>
+          <p>{t.noResultsFoundDesc}</p>
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Trophy, Award, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import KnockoutBracket from './KnockoutBracket';
 
-function PublicStandings({ edition, standings = [], getTeamName, getTeamColor }) {
+function PublicStandings({ edition, standings = [], getTeamName, getTeamColor, t, lang }) {
   const [showBracket, setShowBracket] = useState(true);
 
   return (
@@ -10,11 +10,9 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor })
       <div className="page-header">
         <div className="page-header-text">
           <h2>
-            <Trophy className="page-icon text-warning" /> Classifica Ufficiale con i Punti
+            <Trophy className="page-icon text-warning" /> {t.standingsPageTitle}
           </h2>
-          <p className="page-description">
-            Campionato a girone unico (30 squadre, 29 giornate). Le prime 8 classificate accedono alla Fase Finale ad eliminazione diretta.
-          </p>
+          <p className="page-description">{t.standingsPageDesc}</p>
         </div>
       </div>
 
@@ -23,19 +21,16 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor })
         <div className="legend-items">
           <div className="legend-item">
             <span className="legend-marker winner-zone"></span>
-            <span><strong>Posizioni 1 – 8:</strong> Qualificazione ai Quarti di Finale (Playoff)</span>
+            <span>{t.legendPlayoff}</span>
           </div>
           <div className="legend-item">
             <span className="legend-marker mid-zone"></span>
-            <span><strong>Posizioni 9 – 30:</strong> Girone Unico Regolare</span>
+            <span>{t.legendRegular}</span>
           </div>
         </div>
         <div className="points-rule-box">
           <Info size={14} />
-          <span>
-            <strong>Punteggi:</strong> Vittoria a 10 gol = <strong>3 pt</strong> | Pareggio a 9-9 = <strong>1 pt</strong> | Sconfitta = <strong>0 pt</strong>.
-            Criteri in caso di parità punti: <em>1° Differenza Reti</em> &rarr; <em>2° Scontro Diretto</em> &rarr; <em>3° Gol Segnati</em>.
-          </span>
+          <span>{t.pointsRuleText}</span>
         </div>
       </div>
 
@@ -45,16 +40,16 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor })
           <table className="standings-table main-table">
             <thead>
               <tr>
-                <th className="th-pos">#</th>
-                <th className="th-team text-left">Squadra</th>
-                <th className="th-num">G</th>
-                <th className="th-num">V</th>
-                <th className="th-num">N</th>
-                <th className="th-num">P</th>
-                <th className="th-num">GF</th>
-                <th className="th-num">GS</th>
-                <th className="th-num">DR</th>
-                <th className="th-pts">PT</th>
+                <th className="th-pos">{t.thRank}</th>
+                <th className="th-team text-left">{t.thTeam}</th>
+                <th className="th-num">{t.thPlayed}</th>
+                <th className="th-num">{t.thWon}</th>
+                <th className="th-num">{t.thDrawn}</th>
+                <th className="th-num">{t.thLost}</th>
+                <th className="th-num">{t.thGoalsFor}</th>
+                <th className="th-num">{t.thGoalsAgainst}</th>
+                <th className="th-num">{t.thGoalDiff}</th>
+                <th className="th-pts">{t.thPoints}</th>
               </tr>
             </thead>
             <tbody>
@@ -96,7 +91,7 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor })
                       <tr className="cutoff-divider-row">
                         <td colSpan="10">
                           <div className="cutoff-line-label">
-                            <Award size={13} /> Linea di Qualificazione Quarti di Finale (Top 8)
+                            <Award size={13} /> {t.cutoffLine}
                           </div>
                         </td>
                       </tr>
@@ -107,7 +102,7 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor })
               {standings.length === 0 && (
                 <tr>
                   <td colSpan="10" className="text-center py-6 text-muted">
-                    Nessuna squadra presente in archivio.
+                    {t.noTeamsInStandings}
                   </td>
                 </tr>
               )}
@@ -123,10 +118,8 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor })
             <div className="bracket-title-header">
               <Award size={22} className="text-warning" />
               <div>
-                <h3>Tabellone Fase Finale a Eliminazione Diretta (Playoff)</h3>
-                <p className="subtitle">
-                  Accoppiamenti ufficiali: 1ª vs 8ª (QF1), 4ª vs 5ª (QF2), 2ª vs 7ª (QF3), 3ª vs 6ª (QF4). Regola vantaggi a 2 gol (no pareggi).
-                </p>
+                <h3>{t.bracketSectionTitle}</h3>
+                <p className="subtitle">{t.bracketSectionSubtitle}</p>
               </div>
             </div>
             <button className="icon-btn-toggle">

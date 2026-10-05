@@ -1,21 +1,15 @@
-import React, { useState } from 'react';
-import { BookOpen, Download, AlertTriangle, ShieldCheck, Mail, Clock, MapPin, Award, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+import { BookOpen, Download, MapPin, Clock, Award, Mail } from 'lucide-react';
 
-function PublicRules() {
-  const [lang, setLang] = useState('it');
-
+function PublicRules({ lang, setLang, t }) {
   return (
     <div className="rules-page">
       <div className="page-header">
         <div className="page-header-text">
           <h2>
-            <BookOpen className="page-icon text-accent" /> {lang === 'it' ? 'Regolamento Ufficiale Torneo Calcio Balilla IIT' : 'Official IIT Table Football Tournament Rules'}
+            <BookOpen className="page-icon text-accent" /> {t.rulesPageTitle}
           </h2>
-          <p className="page-description">
-            {lang === 'it' 
-              ? 'Regolamento in Stile Tradizionale approvato per l\'edizione 2026. Si prega di leggere attentamente tutte le sezioni prima di disputare gli incontri.'
-              : 'Traditional Style rules approved for the 2026 edition. Please read all sections carefully before playing your matches.'}
-          </p>
+          <p className="page-description">{t.rulesPageDesc}</p>
         </div>
 
         {/* Language Switcher & Downloads */}
@@ -37,13 +31,13 @@ function PublicRules() {
 
           <div className="download-buttons-group">
             <a href="./regolamento_it.pdf" download="IIT_Regolamento_Torneo_Calcio_Balilla.pdf" className="doc-download-btn">
-              <Download size={15} /> PDF Italiano
+              <Download size={15} /> {t.downloadPdfIt}
             </a>
             <a href="./rules_en.pdf" download="IIT_Table_Football_Tournament_Rules.pdf" className="doc-download-btn">
-              <Download size={15} /> PDF English
+              <Download size={15} /> {t.downloadPdfEn}
             </a>
             <a href="./locandina.pdf" download="locandina_calcio_balilla_IIT.pdf" className="doc-download-btn locandina-btn">
-              <Download size={15} /> Locandina
+              <Download size={15} /> {t.downloadFlyer}
             </a>
           </div>
         </div>
@@ -72,46 +66,14 @@ function PublicRules() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>Quarti di Finale</td>
-                      <td><strong>QF1</strong></td>
-                      <td>1ª Classificata vs 8ª Classificata</td>
-                    </tr>
-                    <tr>
-                      <td>Quarti di Finale</td>
-                      <td><strong>QF2</strong></td>
-                      <td>4ª Classificata vs 5ª Classificata</td>
-                    </tr>
-                    <tr>
-                      <td>Quarti di Finale</td>
-                      <td><strong>QF3</strong></td>
-                      <td>2ª Classificata vs 7ª Classificata</td>
-                    </tr>
-                    <tr>
-                      <td>Quarti di Finale</td>
-                      <td><strong>QF4</strong></td>
-                      <td>3ª Classificata vs 6ª Classificata</td>
-                    </tr>
-                    <tr>
-                      <td>Semifinali</td>
-                      <td><strong>SF1</strong></td>
-                      <td>Vincente QF1 vs Vincente QF2</td>
-                    </tr>
-                    <tr>
-                      <td>Semifinali</td>
-                      <td><strong>SF2</strong></td>
-                      <td>Vincente QF3 vs Vincente QF4</td>
-                    </tr>
-                    <tr>
-                      <td>Finale 3°/4° Posto</td>
-                      <td><strong>F3P</strong></td>
-                      <td>Perdente SF1 vs Perdente SF2</td>
-                    </tr>
-                    <tr>
-                      <td>Finale 1°/2° Posto</td>
-                      <td><strong>FIN</strong></td>
-                      <td>Vincente SF1 vs Vincente SF2</td>
-                    </tr>
+                    <tr><td>Quarti di Finale</td><td><strong>QF1</strong></td><td>1ª Classificata vs 8ª Classificata</td></tr>
+                    <tr><td>Quarti di Finale</td><td><strong>QF2</strong></td><td>4ª Classificata vs 5ª Classificata</td></tr>
+                    <tr><td>Quarti di Finale</td><td><strong>QF3</strong></td><td>2ª Classificata vs 7ª Classificata</td></tr>
+                    <tr><td>Quarti di Finale</td><td><strong>QF4</strong></td><td>3ª Classificata vs 6ª Classificata</td></tr>
+                    <tr><td>Semifinali</td><td><strong>SF1</strong></td><td>Vincente QF1 vs Vincente QF2</td></tr>
+                    <tr><td>Semifinali</td><td><strong>SF2</strong></td><td>Vincente QF3 vs Vincente QF4</td></tr>
+                    <tr><td>Finale 3°/4° Posto</td><td><strong>F3P</strong></td><td>Perdente SF1 vs Perdente SF2</td></tr>
+                    <tr><td>Finale 1°/2° Posto</td><td><strong>FIN</strong></td><td>Vincente SF1 vs Vincente SF2</td></tr>
                   </tbody>
                 </table>
               </div>

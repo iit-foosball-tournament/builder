@@ -7,12 +7,12 @@ import {
   Users, 
   BookOpen, 
   Wrench, 
-  Play, 
   Eye, 
-  RefreshCw 
+  Globe 
 } from 'lucide-react';
 
 import databaseFallback from './data/database_fallback.json';
+import { translations } from './translations';
 import PublicHome from './components/public/PublicHome';
 import PublicCalendar from './components/public/PublicCalendar';
 import PublicResults from './components/public/PublicResults';
@@ -26,6 +26,28 @@ import './App.css';
 const isBuilderAvailable = import.meta.env.VITE_BUILDER !== 'false';
 
 function App() {
+  // Global language state (it / en), persisted in localStorage
+  const [lang, setLang] = useState(() => {
+    try {
+      const savedLang = localStorage.getItem('iit_foosball_lang');
+      if (savedLang === 'en' || savedLang === 'it') return savedLang;
+    } catch (e) {
+      console.warn('Could not read lang from localStorage:', e);
+    }
+    return 'it';
+  });
+
+  const t = translations[lang] || translations.it;
+
+  const handleLanguageChange = (newLang) => {
+    setLang(newLang);
+    try {
+      localStorage.setItem('iit_foosball_lang', newLang);
+    } catch (e) {
+      console.warn('Could not save lang to localStorage:', e);
+    }
+  };
+
   // Navigation tabs: 'home' | 'calendar' | 'results' | 'standings' | 'teams' | 'rules'
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#/', '');
@@ -57,7 +79,6 @@ function App() {
   });
 
   const [activeEditionYear, setActiveEditionYear] = useState('2026');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Sync hash routing
   useEffect(() => {
@@ -86,7 +107,6 @@ function App() {
           if (contentType && contentType.includes('application/json')) {
             const runtimeData = await res.json();
             if (runtimeData && runtimeData.editions && runtimeData.editions['2026']) {
-              // If not modified in builder local storage, update with deployed data
               setEditions(prev => {
                 const localSaved = localStorage.getItem('iit_foosball_editions');
                 if (!localSaved) {
@@ -98,7 +118,6 @@ function App() {
           }
         }
       } catch (err) {
-        // Fallback already populated via databaseFallback, do not crash
         console.log('Using local fallback database:', err.message);
       }
     };
@@ -135,12 +154,11 @@ function App() {
     return found?.logoColor || '#3b82f6';
   };
 
-  // Official Standings Calculation according to tournament rules
+  // Official Standings Calculation
   const standings = useMemo(() => {
     const teams = currentEdition.teams || [];
     const matches = currentEdition.matches || [];
 
-    // Initialize map
     const map = {};
     teams.forEach(t => {
       map[t.name.toLowerCase()] = {
@@ -156,7 +174,6 @@ function App() {
       };
     });
 
-    // Process all played matches
     matches.forEach(m => {
       if (m.status === 'played' && m.score1 !== null && m.score2 !== null) {
         const s1 = parseInt(m.score1, 10);
@@ -175,17 +192,14 @@ function App() {
           t2.ga += s1;
 
           if (s1 > s2) {
-            // Team 1 won (3 points)
             t1.won += 1;
             t1.points += 3;
             t2.lost += 1;
           } else if (s2 > s1) {
-            // Team 2 won (3 points)
             t2.won += 1;
             t2.points += 3;
             t1.lost += 1;
           } else {
-            // Draw (1 point each, typically 9-9)
             t1.drawn += 1;
             t1.points += 1;
             t2.drawn += 1;
@@ -200,7 +214,6 @@ function App() {
       t.gd = t.gf - t.ga;
     });
 
-    // Head-to-head tie-breaker helper
     const getH2HDiff = (teamA, teamB) => {
       let ptsA = 0;
       let ptsB = 0;
@@ -228,7 +241,6 @@ function App() {
       return gdA;
     };
 
-    // Sort order: 1) Points -> 2) Goal Difference -> 3) Head-to-head -> 4) Goals Scored
     return list.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.gd !== a.gd) return b.gd - a.gd;
@@ -238,14 +250,12 @@ function App() {
     });
   }, [currentEdition]);
 
-  // Navigate tab
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     window.location.hash = `#/${tab}`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Update edition handler from builder
   const handleUpdateEdition = (updatedEdition) => {
     setEditions(prev => ({
       ...prev,
@@ -253,12 +263,13 @@ function App() {
     }));
   };
 
-  // Reset to original default database
   const handleResetToDefault = () => {
-    if (confirm("Attenzione: vuoi reimpostare i dati iniziali del calendario e delle 30 squadre? Le modifiche locali non salvate andranno perse.")) {
+    if (confirm(lang === 'it' 
+      ? "Attenzione: vuoi reimpostare i dati iniziali del calendario e delle 30 squadre? Le modifiche locali non salvate andranno perse."
+      : "Warning: do you want to reset the database to the initial 30 teams and schedule? Any unsaved local edits will be lost.")) {
       localStorage.removeItem('iit_foosball_editions');
       setEditions(databaseFallback.editions);
-      alert("Database ripristinato ai dati iniziali!");
+      alert(lang === 'it' ? "Database ripristinato ai dati iniziali!" : "Database reset to initial fixtures!");
     }
   };
 
@@ -267,35 +278,56 @@ function App() {
       {/* Top Header */}
       <header className="main-header">
         <div className="header-logo-group" onClick={() => handleTabChange('home')} style={{ cursor: 'pointer' }}>
-          <img src="./logo_foosball.svg" alt="IIT Foosball Logo" className="header-foosball-logo" />
+          <img src="/logo_foosball.svg" alt="IIT Foosball Logo" className="header-foosball-logo" />
           <div className="header-titles">
-            <h1 className="header-main-title">IIT FOOSBALL TOURNAMENT 2026</h1>
-            <p className="header-sub-title">Campionato di Calcio Balilla · CCT Morego</p>
+            <h1 className="header-main-title">{t.tournamentTitle}</h1>
+            <p className="header-sub-title">{t.tournamentSubTitle}</p>
           </div>
-          <img src="./logo_iit.svg" alt="IIT Logo" className="header-iit-logo" />
+          <img src="/logo_iit.svg" alt="IIT Logo" className="header-iit-logo" />
         </div>
 
-        {/* Builder Admin Switch */}
-        {isBuilderAvailable && (
-          <div className="header-admin-action">
-            {isBuilder ? (
-              <button 
-                className="cta-btn primary-btn btn-sm"
-                onClick={() => { setIsBuilder(false); window.location.hash = `#/home`; }}
-              >
-                <Eye size={14} /> Torna al Sito Pubblico
-              </button>
-            ) : (
-              <button 
-                className="cta-btn outline-btn btn-sm"
-                onClick={() => { setIsBuilder(true); window.location.hash = `#/builder`; }}
-                title="Accedi al pannello per aggiornare partite, classifiche e foto"
-              >
-                <Wrench size={14} /> Builder / Gestione
-              </button>
-            )}
+        {/* Header Right Actions: Language Switcher + Builder Switch */}
+        <div className="header-right-actions">
+          {/* Global Language Switcher */}
+          <div className="global-lang-switch">
+            <button 
+              className={`lang-toggle-btn ${lang === 'it' ? 'active' : ''}`}
+              onClick={() => handleLanguageChange('it')}
+              title="Italiano"
+            >
+              🇮🇹 IT
+            </button>
+            <button 
+              className={`lang-toggle-btn ${lang === 'en' ? 'active' : ''}`}
+              onClick={() => handleLanguageChange('en')}
+              title="English"
+            >
+              🇬🇧 EN
+            </button>
           </div>
-        )}
+
+          {/* Builder Admin Switch */}
+          {isBuilderAvailable && (
+            <div className="header-admin-action">
+              {isBuilder ? (
+                <button 
+                  className="cta-btn primary-btn btn-sm"
+                  onClick={() => { setIsBuilder(false); window.location.hash = `#/home`; }}
+                >
+                  <Eye size={14} /> {t.backToPublic}
+                </button>
+              ) : (
+                <button 
+                  className="cta-btn outline-btn btn-sm"
+                  onClick={() => { setIsBuilder(true); window.location.hash = `#/builder`; }}
+                  title="Accedi al pannello per aggiornare partite, classifiche e foto"
+                >
+                  <Wrench size={14} /> {t.builderBtn}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Main View Router */}
@@ -307,6 +339,8 @@ function App() {
           onUpdateEdition={handleUpdateEdition}
           onPreviewToggle={() => { setIsBuilder(false); window.location.hash = `#/home`; }}
           standings={standings}
+          t={t}
+          lang={lang}
         />
       ) : (
         /* ==================== PUBLIC SITE VIEW ==================== */
@@ -318,37 +352,37 @@ function App() {
                 className={`nav-tab-btn ${activeTab === 'home' ? 'active' : ''}`}
                 onClick={() => handleTabChange('home')}
               >
-                <Home size={17} /> <span>Home</span>
+                <Home size={17} /> <span>{t.navHome}</span>
               </button>
               <button 
                 className={`nav-tab-btn ${activeTab === 'calendar' ? 'active' : ''}`}
                 onClick={() => handleTabChange('calendar')}
               >
-                <Calendar size={17} /> <span>Calendario</span>
+                <Calendar size={17} /> <span>{t.navCalendar}</span>
               </button>
               <button 
                 className={`nav-tab-btn ${activeTab === 'results' ? 'active' : ''}`}
                 onClick={() => handleTabChange('results')}
               >
-                <Flame size={17} /> <span>Risultati</span>
+                <Flame size={17} /> <span>{t.navResults}</span>
               </button>
               <button 
                 className={`nav-tab-btn ${activeTab === 'standings' ? 'active' : ''}`}
                 onClick={() => handleTabChange('standings')}
               >
-                <Trophy size={17} /> <span>Classifica</span>
+                <Trophy size={17} /> <span>{t.navStandings}</span>
               </button>
               <button 
                 className={`nav-tab-btn ${activeTab === 'teams' ? 'active' : ''}`}
                 onClick={() => handleTabChange('teams')}
               >
-                <Users size={17} /> <span>Squadre &amp; Foto</span>
+                <Users size={17} /> <span>{t.navTeams}</span>
               </button>
               <button 
                 className={`nav-tab-btn ${activeTab === 'rules' ? 'active' : ''}`}
                 onClick={() => handleTabChange('rules')}
               >
-                <BookOpen size={17} /> <span>Regolamento</span>
+                <BookOpen size={17} /> <span>{t.navRules}</span>
               </button>
             </div>
           </nav>
@@ -362,6 +396,8 @@ function App() {
                 getTeamColor={getTeamColor}
                 standings={standings}
                 onNavigateTab={handleTabChange}
+                t={t}
+                lang={lang}
               />
             )}
 
@@ -370,6 +406,8 @@ function App() {
                 edition={currentEdition}
                 getTeamName={getTeamName}
                 getTeamColor={getTeamColor}
+                t={t}
+                lang={lang}
               />
             )}
 
@@ -378,6 +416,8 @@ function App() {
                 edition={currentEdition}
                 getTeamName={getTeamName}
                 getTeamColor={getTeamColor}
+                t={t}
+                lang={lang}
               />
             )}
 
@@ -387,6 +427,8 @@ function App() {
                 standings={standings}
                 getTeamName={getTeamName}
                 getTeamColor={getTeamColor}
+                t={t}
+                lang={lang}
               />
             )}
 
@@ -395,11 +437,17 @@ function App() {
                 edition={currentEdition}
                 standings={standings}
                 getTeamColor={getTeamColor}
+                t={t}
+                lang={lang}
               />
             )}
 
             {activeTab === 'rules' && (
-              <PublicRules />
+              <PublicRules 
+                lang={lang}
+                setLang={handleLanguageChange}
+                t={t}
+              />
             )}
           </div>
         </main>
@@ -408,23 +456,21 @@ function App() {
       {/* Footer */}
       <footer className="main-footer">
         <div className="footer-content">
-          <p>© 2026 Istituto Italiano di Tecnologia (IIT) · Torneo di Calcio Balilla</p>
-          <p className="footer-subtext">
-            Tavolo situato presso la Sala Mensa CCT Morego · Orario di gioco consentito: 08:00 – 15:00
-          </p>
+          <p>{t.footerCopyright}</p>
+          <p className="footer-subtext">{t.footerLocation}</p>
           <div className="footer-links">
             <span onClick={() => handleTabChange('rules')} style={{ cursor: 'pointer', textDecoration: 'underline' }}>
-              Regolamento Ufficiale
+              {t.footerRulesLink}
             </span>
             <span>·</span>
             <a href="mailto:filippo.drago@iit.it,simone.nitti@iit.it,calogero.boscarini@iit.it">
-              Contatta gli Organizzatori
+              {t.footerContactLink}
             </a>
             {isBuilderAvailable && (
               <>
                 <span>·</span>
                 <span onClick={handleResetToDefault} style={{ cursor: 'pointer', opacity: 0.6, fontSize: '11px' }}>
-                  Ripristina Dati Iniziali
+                  {t.footerResetLink}
                 </span>
               </>
             )}

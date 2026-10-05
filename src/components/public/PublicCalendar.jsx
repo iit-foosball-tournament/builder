@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Filter, Search, MapPin, Clock, ArrowRight, Shield } from 'lucide-react';
+import { Calendar, Filter, Search, MapPin, Clock, Shield } from 'lucide-react';
 
-function PublicCalendar({ edition, getTeamName, getTeamColor }) {
+function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
   const [selectedRound, setSelectedRound] = useState('all');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -9,25 +9,20 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
   const matches = edition.matches || [];
   const teams = edition.teams || [];
 
-  // Filter only scheduled matches or all
   const filteredMatches = useMemo(() => {
     return matches.filter(m => {
-      // Must be scheduled or pending
       if (m.status === 'played') return false;
 
-      // Filter by round
       if (selectedRound !== 'all' && m.round !== selectedRound) {
         return false;
       }
 
-      // Filter by team
       if (selectedTeam !== 'all') {
         const teamMatch = m.team1.toLowerCase() === selectedTeam.toLowerCase() || 
                           m.team2.toLowerCase() === selectedTeam.toLowerCase();
         if (!teamMatch) return false;
       }
 
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesQuery = m.team1.toLowerCase().includes(q) || 
@@ -40,7 +35,6 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
     });
   }, [matches, selectedRound, selectedTeam, searchQuery]);
 
-  // Group by round for clear schedule view
   const matchesByRound = useMemo(() => {
     const groups = {};
     filteredMatches.forEach(m => {
@@ -57,17 +51,21 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
     roundsList.push(`Giornata ${i}`);
   }
 
+  const formatRoundTitle = (roundName) => {
+    if (lang === 'en') {
+      return roundName.replace('Giornata', 'Round');
+    }
+    return roundName;
+  };
+
   return (
     <div className="calendar-page">
       <div className="page-header">
         <div className="page-header-text">
           <h2>
-            <Calendar className="page-icon text-accent" /> Calendario Eventi in Programma
+            <Calendar className="page-icon text-accent" /> {t.calendarPageTitle}
           </h2>
-          <p className="page-description">
-            Consulta il calendario completo delle 29 Giornate di campionato (435 partite).
-            Le partite vengono concordate autonomamente tra le squadre presso il tavolo della mensa CCT Morego (08:00 – 15:00).
-          </p>
+          <p className="page-description">{t.calendarPageDesc}</p>
         </div>
       </div>
 
@@ -76,41 +74,41 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
         <div className="filter-row">
           {/* Round Selector */}
           <div className="filter-item">
-            <label><Filter size={14} /> Filtra per Giornata:</label>
+            <label><Filter size={14} /> {t.filterRoundLabel}</label>
             <select 
               value={selectedRound} 
               onChange={e => setSelectedRound(e.target.value)}
               className="filter-select"
             >
-              <option value="all">Tutte le 29 Giornate</option>
+              <option value="all">{t.allRounds}</option>
               {roundsList.map(r => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>{formatRoundTitle(r)}</option>
               ))}
             </select>
           </div>
 
           {/* Team Selector */}
           <div className="filter-item">
-            <label><Shield size={14} /> Filtra per Squadra:</label>
+            <label><Shield size={14} /> {t.filterTeamLabel}</label>
             <select 
               value={selectedTeam} 
               onChange={e => setSelectedTeam(e.target.value)}
               className="filter-select"
             >
-              <option value="all">Tutte le 30 Squadre</option>
-              {teams.map(t => (
-                <option key={t.id || t.name} value={t.name}>{t.name}</option>
+              <option value="all">{t.allTeams}</option>
+              {teams.map(tItem => (
+                <option key={tItem.id || tItem.name} value={tItem.name}>{tItem.name}</option>
               ))}
             </select>
           </div>
 
           {/* Free Text Search */}
           <div className="filter-item search-item">
-            <label><Search size={14} /> Cerca Squadra:</label>
+            <label><Search size={14} /> {t.searchTeamLabel}</label>
             <div className="search-input-wrap">
               <input 
                 type="text" 
-                placeholder="Es. Pupi, Muffins, Softenham..." 
+                placeholder={t.searchPlaceholder} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -124,13 +122,13 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
 
         {/* Quick summary line */}
         <div className="filter-summary">
-          <span>Incontri da disputare trovati: <strong>{filteredMatches.length}</strong></span>
+          <span>{t.matchesFoundCount} <strong>{filteredMatches.length}</strong></span>
           {(selectedRound !== 'all' || selectedTeam !== 'all' || searchQuery) && (
             <button 
               className="reset-filters-btn" 
               onClick={() => { setSelectedRound('all'); setSelectedTeam('all'); setSearchQuery(''); }}
             >
-              Azzera Filtri
+              {t.resetFilters}
             </button>
           )}
         </div>
@@ -142,14 +140,14 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
           {Object.entries(matchesByRound).map(([roundName, roundMatches]) => (
             <div key={roundName} className="round-group-card">
               <div className="round-group-header">
-                <h3>{roundName}</h3>
-                <span className="round-match-count">{roundMatches.length} incontri da giocare</span>
+                <h3>{formatRoundTitle(roundName)}</h3>
+                <span className="round-match-count">{roundMatches.length} {t.matchesToPlay}</span>
               </div>
               <div className="matches-grid">
                 {roundMatches.map(m => (
                   <div key={m.id} className="schedule-match-card">
                     <div className="match-top-meta">
-                      <span className="status-pill scheduled">In Programma</span>
+                      <span className="status-pill scheduled">{t.scheduledBadge}</span>
                       <span className="pitch-info">
                         <MapPin size={12} /> {m.pitch || 'Mensa CCT Morego'}
                       </span>
@@ -170,7 +168,7 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
                     <div className="match-bottom-bar">
                       <div className="timing-info">
                         <Clock size={13} />
-                        <span>{m.date ? `${m.date} ${m.time}` : 'Orario: da concordare (8:00 - 15:00)'}</span>
+                        <span>{m.date ? `${m.date} ${m.time}` : t.arrangedTime}</span>
                       </div>
                     </div>
                   </div>
@@ -182,8 +180,8 @@ function PublicCalendar({ edition, getTeamName, getTeamColor }) {
       ) : (
         <div className="no-matches-found">
           <Calendar size={48} className="text-muted mb-2" />
-          <h3>Nessun incontro trovato con i filtri selezionati</h3>
-          <p>Prova a modificare o azzerare i filtri per vedere tutti gli incontri del calendario.</p>
+          <h3>{t.noMatchesFiltered}</h3>
+          <p>{t.noMatchesFilteredSub}</p>
         </div>
       )}
     </div>
