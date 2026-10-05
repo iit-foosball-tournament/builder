@@ -35,17 +35,7 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
             </div>
           </div>
 
-          <div className="hero-cta-group">
-            <button className="cta-btn primary-btn" onClick={() => onNavigateTab('calendar')}>
-              <Calendar size={18} /> {t.btnViewCalendar}
-            </button>
-            <button className="cta-btn secondary-btn" onClick={() => onNavigateTab('standings')}>
-              <Trophy size={18} /> {t.btnLiveStandings}
-            </button>
-            <button className="cta-btn outline-btn" onClick={() => onNavigateTab('teams')}>
-              <Users size={18} /> {t.btnTeamsPhotos}
-            </button>
-          </div>
+
         </div>
       </section>
 

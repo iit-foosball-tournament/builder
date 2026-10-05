@@ -286,8 +286,8 @@ export default function KnockoutBracket({ stages, getResolvedTeamInfo, compact =
   });
 
   return (
-    <div style={{ overflow: 'hidden', paddingBottom: '12px', width: '100%' }}>
-      <div style={{ height: `${totalHeight}px`, position: 'relative', width: '100%' }}>
+    <div style={{ overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch', paddingBottom: '16px', width: '100%' }}>
+      <div style={{ height: `${totalHeight}px`, position: 'relative', width: '100%', minWidth: `${Math.max(totalWidth, 640)}px` }}>
         {columns.map((column, colIndex) => (
           <div
             key={`header-${colIndex}`}
