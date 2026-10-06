@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Users, Search, UserCheck, Camera } from 'lucide-react';
+import { supabase } from '../../supabase';
+import { resolveTeamPhoto } from '../../tournamentData';
+import PhotoWithFallback from '../PhotoWithFallback';
 
-function PublicTeams({ edition, standings = [], getTeamColor, t, lang }) {
+function PublicTeams({ edition, standings = [], getTeamColor, t }) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const teams = edition.teams || [];
+  const teams = useMemo(() => edition.teams || [], [edition.teams]);
 
   const statsMap = useMemo(() => {
     const map = {};
@@ -71,20 +74,12 @@ function PublicTeams({ edition, standings = [], getTeamColor, t, lang }) {
         {filteredTeams.map((team, idx) => {
           const stats = statsMap[team.name.toLowerCase()] || statsMap[team.id] || { rank: '-', points: 0, played: 0, won: 0 };
           const teamColor = team.logoColor || getTeamColor(team.name);
-          const hasPhoto = team.photo && team.photo.trim() !== '';
 
           return (
             <div key={team.id || idx} className="team-card">
               {/* Card Photo / Emblem Header */}
               <div className="team-card-media" style={{ borderColor: teamColor }}>
-                {hasPhoto ? (
-                  <img 
-                    src={team.photo} 
-                    alt={`Team ${team.name}`} 
-                    className="team-photo-img" 
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                ) : (
+                <PhotoWithFallback key={team.photo || ''} src={resolveTeamPhoto(team.photo, supabase)} alt={`Team ${team.name}`} className="team-photo-img">
                   <div className="team-emblem-fallback" style={{ background: `linear-gradient(135deg, ${teamColor}22 0%, ${teamColor}66 100%)` }}>
                     <div className="team-avatar-circle" style={{ backgroundColor: teamColor }}>
                       <span className="team-avatar-initials">
@@ -95,7 +90,7 @@ function PublicTeams({ edition, standings = [], getTeamColor, t, lang }) {
                       <Camera size={13} /> {t.pendingPhoto}
                     </div>
                   </div>
-                )}
+                </PhotoWithFallback>
                 {stats.rank !== '-' && (
                   <div className="team-rank-overlay">
                     #{stats.rank}

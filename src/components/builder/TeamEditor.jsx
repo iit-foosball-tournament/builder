@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
-import { Users, Plus, Trash2, Camera, Upload, Check, Shield, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Plus, Trash2, Camera, Upload } from 'lucide-react';
+import { supabase } from '../../supabase';
+import { resolveTeamPhoto } from '../../tournamentData';
+import PhotoWithFallback from '../PhotoWithFallback';
 
-function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
+function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam, onUploadPhoto }) {
   const [name, setName] = useState('');
   const [logoColor, setLogoColor] = useState('#2563eb');
   const [player1, setPlayer1] = useState('');
   const [player2, setPlayer2] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
+  const [uploadingTeamId, setUploadingTeamId] = useState('');
+  const [photoError, setPhotoError] = useState('');
 
   // Handle adding a new team
   const handleSubmit = (e) => {
@@ -22,22 +27,19 @@ function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
     setPlayer2('');
   };
 
-  // Handle uploading team photo (converts to base64 DataURL for easy persistence & export)
-  const handlePhotoUpload = (teamId, file) => {
+  const handlePhotoUpload = async (teamId, file) => {
     if (!file) return;
+    setPhotoError('');
+    setUploadingTeamId(teamId);
 
-    // Check size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert("L'immagine è troppo grande. Seleziona una foto inferiore a 5MB.");
-      return;
+    try {
+      const objectPath = await onUploadPhoto(teamId, file);
+      onUpdateTeam(teamId, { photo: objectPath });
+    } catch (error) {
+      setPhotoError(error.message || 'Impossibile caricare la foto.');
+    } finally {
+      setUploadingTeamId('');
     }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
-      onUpdateTeam(teamId, { photo: dataUrl });
-    };
-    reader.readAsDataURL(file);
   };
 
   // Filtered teams list
@@ -118,7 +120,7 @@ function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
       <div className="search-bar-wrap mb-3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <input 
           type="text" 
-          placeholder="Cerca squadra o giocatore tra le 30 registrate..." 
+          placeholder="Cerca squadra o giocatore..."
           value={searchFilter}
           onChange={e => setSearchFilter(e.target.value)}
           style={{ maxWidth: '400px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
@@ -128,39 +130,37 @@ function TeamEditor({ teams = [], onAddTeam, onDeleteTeam, onUpdateTeam }) {
         </span>
       </div>
 
+      {photoError && <p className="builder-login-error" role="alert">{photoError}</p>}
+
       {/* Teams Grid with Photo Uploaders */}
-      <div className="admin-teams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '16px' }}>
+      <div className="admin-teams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 350px), 1fr))', gap: '16px' }}>
         {filteredTeams.map((t, idx) => (
           <div key={t.id || idx} className="card team-admin-card" style={{ borderLeft: `6px solid ${t.logoColor || '#3b82f6'}` }}>
             <div className="card-body">
               {/* Photo Area */}
               <div style={{ display: 'flex', gap: '14px', marginBottom: '14px', alignItems: 'center' }}>
                 <div style={{ position: 'relative', width: '90px', height: '90px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {t.photo ? (
-                    <img 
-                      src={t.photo} 
-                      alt={t.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
-                  ) : (
+                  <PhotoWithFallback key={t.photo || ''} src={resolveTeamPhoto(t.photo, supabase)} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
                     <div style={{ textAlign: 'center', color: '#94a3b8' }}>
                       <Camera size={26} />
                       <div style={{ fontSize: '10px', marginTop: '2px' }}>No foto</div>
                     </div>
-                  )}
+                  </PhotoWithFallback>
                 </div>
 
                 <div style={{ flex: 1 }}>
                   <label className="file-upload-btn-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0284c7', color: '#fff', padding: '7px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    <Upload size={14} /> Carica Foto
-                    <input 
-                      type="file" 
-                      accept="image/*" 
+                    {uploadingTeamId === t.id ? 'Caricamento…' : <><Upload size={14} /> Carica Foto</>}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
                       style={{ display: 'none' }}
+                      disabled={uploadingTeamId === t.id}
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           handlePhotoUpload(t.id, e.target.files[0]);
                         }
+                        e.target.value = '';
                       }}
                     />
                   </label>

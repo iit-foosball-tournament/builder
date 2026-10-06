@@ -1,18 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Home, 
-  Calendar, 
-  Flame, 
-  Trophy, 
-  Users, 
-  BookOpen, 
-  Wrench, 
-  Eye, 
-  Globe 
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import {
+  Home,
+  Calendar,
+  Flame,
+  Trophy,
+  Users,
+  BookOpen,
+  Wrench,
+  Eye
 } from 'lucide-react';
 
 import databaseFallback from './data/database_fallback.json';
 import { translations } from './translations';
+import { supabase } from './supabase';
+import {
+  cleanupAbandonedTeamPhotos,
+  loadTournamentEditions,
+  removeTeamPhotos,
+  saveTournamentEdition,
+  uploadTeamPhoto
+} from './tournamentData';
+import { initialTournamentState, tournamentDraftReducer } from './tournamentDraft';
 import PublicHome from './components/public/PublicHome';
 import PublicCalendar from './components/public/PublicCalendar';
 import PublicResults from './components/public/PublicResults';
@@ -20,6 +28,7 @@ import PublicStandings from './components/public/PublicStandings';
 import PublicTeams from './components/public/PublicTeams';
 import PublicRules from './components/public/PublicRules';
 import BuilderMain from './components/builder/BuilderMain';
+import BuilderLogin from './components/builder/BuilderLogin';
 
 import './App.css';
 
@@ -62,92 +71,135 @@ function App() {
     return isBuilderAvailable && window.location.hash.startsWith('#/builder');
   });
 
-  // Database state
-  const [editions, setEditions] = useState(() => {
-    // Public deployments must never use stale browser drafts over the published roster.
-    if (!isBuilderAvailable) return databaseFallback.editions || {};
+  const [dataState, setDataState] = useState(() => initialTournamentState(databaseFallback.editions || {}));
+  const stateRef = useRef(dataState);
+  const pendingPhotos = useRef(new Map());
+  const busyRef = useRef(false);
+  const authUserRef = useRef(null);
+  const [isPreview, setIsPreview] = useState(false);
+  const [dataLoading, setDataLoading] = useState(Boolean(supabase));
+  const [isSaving, setIsSaving] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [saveError, setSaveError] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(Boolean(supabase));
+  const [editorAccess, setEditorAccess] = useState('checking');
+  const { editions, dirty: isDirty, source: dataSource, error: dataLoadError } = dataState;
+  const activeEditionYear = String(databaseFallback.activeEditionYear) in editions
+    ? String(databaseFallback.activeEditionYear) : Object.keys(editions).sort().at(-1);
+
+  const dispatchData = useCallback(action => {
+    stateRef.current = tournamentDraftReducer(stateRef.current, action);
+    setDataState(stateRef.current);
+  }, []);
+
+  const clearPendingPhotos = useCallback(() => {
+    for (const url of pendingPhotos.current.keys()) URL.revokeObjectURL(url);
+    pendingPhotos.current.clear();
+  }, []);
+
+  const refreshCloud = useCallback(async (discard = false, checkRevision = false) => {
+    if (!supabase) return;
     try {
-      const saved = localStorage.getItem('iit_foosball_editions');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed['2026']?.teams?.length) {
-          // Upgrade old drafts without losing edited results, photos or name-only edits.
-          const canonical = new Map(databaseFallback.editions['2026'].teams.map(team => [team.id, team]));
-          return {
-            ...parsed,
-            '2026': {
-              ...parsed['2026'],
-              teams: parsed['2026'].teams.map(team => {
-                const source = canonical.get(team.id);
-                if (!source) return team;
-                return {
-                  ...team,
-                  player1: !team.player1?.trim() || team.player1.includes('@') ? source.player1 : team.player1,
-                  player2: !team.player2?.trim() || team.player2.includes('@') ? source.player2 : team.player2
-                };
-              })
-            }
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('Error reading from localStorage:', e);
+      const identity = authUserRef.current;
+      const result = await loadTournamentEditions(supabase, checkRevision ? stateRef.current.savedRevisions : undefined);
+      const canDiscard = discard && identity === authUserRef.current;
+      if (result) dispatchData({ type: 'loaded', result, discard: canDiscard });
+      else dispatchData({ type: 'error', message: '' });
+      if (canDiscard) clearPendingPhotos();
+      return true;
+    } catch (error) {
+      dispatchData({ type: 'error', message: error.message });
+      return false;
+    } finally {
+      setDataLoading(false);
     }
-    return databaseFallback.editions || {};
-  });
+  }, [dispatchData, clearPendingPhotos]);
 
-  const [activeEditionYear, setActiveEditionYear] = useState('2026');
-
-  // Sync hash routing
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '');
-      if (hash.startsWith('builder')) {
-        if (isBuilderAvailable) setIsBuilder(true);
-      } else {
-        setIsBuilder(false);
-        if (['home', 'calendar', 'results', 'standings', 'teams', 'rules'].includes(hash)) {
-          setActiveTab(hash);
-        }
-      }
+      setIsBuilder(isBuilderAvailable && hash.startsWith('builder'));
+      if (['home', 'calendar', 'results', 'standings', 'teams', 'rules'].includes(hash)) setActiveTab(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Published JSON is authoritative for public visitors, including returning visitors.
   useEffect(() => {
-    if (isBuilderAvailable) return;
-    let cancelled = false;
-    const loadRuntimeData = async () => {
-      try {
-        const res = await fetch('./data/data.json');
-        if (!res.ok) return;
-        const runtimeData = await res.json();
-        if (!cancelled && runtimeData?.editions?.['2026']?.teams?.length) {
-          setEditions(runtimeData.editions);
-        }
-      } catch (err) {
-        console.log('Using local fallback database:', err.message);
-      }
+    if (!supabase) return undefined;
+    let active = true;
+    const refresh = () => { if (active) void refreshCloud(false, true); };
+    refresh();
+    const channel = supabase.channel('tournament-editions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_editions' }, refresh)
+      .subscribe();
+    // Re-fetch after sleeping/reconnecting, and as a fallback if Realtime is unavailable.
+    const interval = window.setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      window.removeEventListener('focus', refresh);
+      void supabase.removeChannel(channel);
     };
-    loadRuntimeData();
-    return () => { cancelled = true; };
+  }, [refreshCloud]);
+
+  useEffect(() => {
+    const protectDraft = event => {
+      if (!stateRef.current.dirty && !busyRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectDraft);
+    return () => window.removeEventListener('beforeunload', protectDraft);
   }, []);
 
-  // Only the builder stores local drafts; public visitors never overwrite them.
-  useEffect(() => {
-    if (!isBuilderAvailable) return;
-    try {
-      if (editions && Object.keys(editions).length > 0) {
-        localStorage.setItem('iit_foosball_editions', JSON.stringify(editions));
-      }
-    } catch (e) {
-      console.warn('Could not save to localStorage:', e);
-    }
-  }, [editions]);
+  useEffect(() => () => clearPendingPhotos(), [clearPendingPhotos]);
 
-  const currentEdition = editions[activeEditionYear] || databaseFallback.editions['2026'] || {};
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let active = true;
+    const applySession = nextSession => {
+      if (!active) return;
+      const userId = nextSession?.user.id || null;
+      if (authUserRef.current !== userId) {
+        dispatchData({ type: 'discard' });
+        clearPendingPhotos();
+        setIsPreview(false);
+        setSaveMessage('');
+        setEditorAccess('checking');
+      }
+      authUserRef.current = userId;
+      setSession(nextSession);
+      setAuthLoading(false);
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => applySession(nextSession));
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) console.warn('Session restore failed:', error.message);
+      applySession(data?.session || null);
+    }).catch(() => applySession(null));
+    return () => { active = false; subscription.unsubscribe(); };
+  }, [dispatchData, clearPendingPhotos]);
+
+  useEffect(() => {
+    if (!isBuilder || !supabase || !session) return undefined;
+    let active = true;
+    supabase.rpc('is_tournament_editor').then(({ data, error }) => {
+      if (!active) return;
+      setEditorAccess(error ? 'error' : data === true ? 'allowed' : 'denied');
+      if (!error && data === true) {
+        void cleanupAbandonedTeamPhotos(supabase).catch(() => console.warn('Pulizia delle foto abbandonate rinviata.'));
+      }
+    }).catch(() => { if (active) setEditorAccess('error'); });
+    return () => { active = false; };
+  }, [isBuilder, session]);
+
+  const currentEdition = useMemo(() => {
+    const visible = isBuilder || (isPreview && session) ? dataState.editions : dataState.savedEditions;
+    return visible[activeEditionYear] || { name: '', teams: [], matches: [] };
+  }, [dataState, activeEditionYear, isBuilder, isPreview, session]);
 
   // Helper to resolve team name and color
   const getTeamName = (teamIdOrName) => {
@@ -268,21 +320,121 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleUpdateEdition = (updatedEdition) => {
-    setEditions(prev => ({
-      ...prev,
-      [activeEditionYear]: updatedEdition
-    }));
+  const handleUpdateEdition = update => {
+    if (busyRef.current || editorAccess !== 'allowed') return;
+    dispatchData({ type: 'edit', year: activeEditionYear, update });
+    const used = new Set(Object.values(stateRef.current.editions).flatMap(edition => edition.teams.map(team => team.photo)));
+    for (const url of pendingPhotos.current.keys()) {
+      if (!used.has(url)) {
+        URL.revokeObjectURL(url);
+        pendingPhotos.current.delete(url);
+      }
+    }
+    setSaveMessage('');
+    setSaveError(false);
   };
 
-  const handleResetToDefault = () => {
-    if (confirm(lang === 'it' 
-      ? "Attenzione: vuoi reimpostare i dati iniziali del calendario e delle 30 squadre? Le modifiche locali non salvate andranno perse."
-      : "Warning: do you want to reset the database to the initial 30 teams and schedule? Any unsaved local edits will be lost.")) {
-      localStorage.removeItem('iit_foosball_editions');
-      setEditions(databaseFallback.editions);
-      alert(lang === 'it' ? "Database ripristinato ai dati iniziali!" : "Database reset to initial fixtures!");
+  // Keep selected files in this browser until the editor explicitly presses Save.
+  const handleUploadPhoto = (teamId, file) => {
+    if (busyRef.current) throw new Error('Attendi la fine del salvataggio.');
+    if (!file || file.size <= 0 || file.size > 5 * 1024 * 1024) throw new Error('Scegli una foto non vuota fino a 5 MB.');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Usa JPG, PNG o WebP.');
+    const url = URL.createObjectURL(file);
+    pendingPhotos.current.set(url, { file, teamId });
+    return url;
+  };
+
+  const handleSave = async () => {
+    if (!supabase || !session || busyRef.current || editorAccess !== 'allowed') return;
+    const snapshot = stateRef.current;
+    if (snapshot.error || snapshot.source !== 'cloud') {
+      setSaveMessage('Riprova la lettura dei dati online prima di salvare.');
+      setSaveError(true);
+      return;
     }
+    const year = activeEditionYear;
+    const userId = session.user.id;
+    const edition = structuredClone(snapshot.editions[year]);
+    const selectedPhotos = new Map(pendingPhotos.current);
+    const uploaded = [];
+    busyRef.current = true;
+    setIsSaving(true);
+    setSaveMessage('');
+    setSaveError(false);
+    let committed = false;
+    try {
+      for (const team of edition.teams) {
+        if (!team.photo?.startsWith('blob:')) continue;
+        const selected = selectedPhotos.get(team.photo);
+        if (!selected) throw new Error('Seleziona di nuovo la foto prima di salvare.');
+        if (authUserRef.current !== userId) throw new Error('La sessione è cambiata. Accedi di nuovo.');
+        const path = await uploadTeamPhoto(supabase, team.id, selected.file);
+        uploaded.push(path);
+        team.photo = path;
+      }
+      if (authUserRef.current !== userId) throw new Error('La sessione è cambiata. Accedi di nuovo.');
+      const revision = await saveTournamentEdition(supabase, {
+        year, edition, expectedRevision: snapshot.revisions[year]
+      });
+      committed = true;
+      if (authUserRef.current === userId) {
+        dispatchData({ type: 'saved', year, edition, revision });
+        clearPendingPhotos();
+        setSaveMessage('Salvato online: il sito pubblico si aggiorna automaticamente.');
+      } else {
+        await refreshCloud();
+      }
+      const currentPhotos = new Set(Object.values(stateRef.current.savedEditions).flatMap(item => item.teams.map(team => team.photo)));
+      const obsolete = snapshot.savedEditions[year].teams.map(team => team.photo).filter(path => path && !currentPhotos.has(path));
+      try {
+        await removeTeamPhotos(supabase, obsolete);
+      } catch {
+        setSaveMessage('Dati salvati online. Pulizia delle vecchie foto non riuscita.');
+      }
+    } catch (error) {
+      setSaveMessage(error.message || 'Salvataggio non riuscito. Riprova.');
+      setSaveError(true);
+    } finally {
+      if (!committed && uploaded.length) {
+        try { await removeTeamPhotos(supabase, uploaded); }
+        catch { console.warn('Pulizia foto non completata.'); }
+      }
+      busyRef.current = false;
+      setIsSaving(false);
+    }
+  };
+
+  const handleReload = async () => {
+    if (busyRef.current) return;
+    if (stateRef.current.dirty && !confirm('Ricaricare i dati online e scartare le tue modifiche non salvate? Annulla per mantenere la bozza.')) return;
+    busyRef.current = true;
+    setIsReloading(true);
+    try {
+      if (await refreshCloud(true)) {
+        setSaveMessage('Dati online ricaricati.');
+        setSaveError(false);
+      }
+    } finally {
+      busyRef.current = false;
+      setIsReloading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase || busyRef.current) return;
+    if (stateRef.current.dirty && !confirm('Uscire e scartare le modifiche non salvate?')) return;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setSaveMessage('Non è stato possibile uscire: riprova.');
+      setSaveError(true);
+    }
+  };
+
+  const handlePreview = () => {
+    if (busyRef.current) return;
+    setIsPreview(true);
+    setIsBuilder(false);
+    window.location.hash = '#/home';
   };
 
   return (
@@ -290,12 +442,12 @@ function App() {
       {/* Top Header */}
       <header className="main-header">
         <div className="header-logo-group" onClick={() => handleTabChange('home')} style={{ cursor: 'pointer' }}>
-          <img src="/logo_foosball.svg" alt="IIT Foosball Logo" className="header-foosball-logo" />
+          <img src={`${import.meta.env.BASE_URL}logo_foosball.svg`} alt="IIT Foosball Logo" className="header-foosball-logo" />
           <div className="header-titles">
             <h1 className="header-main-title">{t.tournamentTitle}</h1>
             <p className="header-sub-title">{t.tournamentSubTitle}</p>
           </div>
-          <img src="/logo_iit.svg" alt="IIT Logo" className="header-iit-logo" />
+          <img src={`${import.meta.env.BASE_URL}logo_iit.svg`} alt="IIT Logo" className="header-iit-logo" />
         </div>
 
         {/* Header Right Actions: Language Switcher + Builder Switch */}
@@ -324,7 +476,8 @@ function App() {
               {isBuilder ? (
                 <button 
                   className="cta-btn primary-btn btn-sm"
-                  onClick={() => { setIsBuilder(false); window.location.hash = `#/home`; }}
+                  onClick={() => { setIsPreview(false); setIsBuilder(false); window.location.hash = '#/home'; }}
+                  disabled={isSaving || isReloading}
                 >
                   <Eye size={14} /> {t.backToPublic}
                 </button>
@@ -345,18 +498,65 @@ function App() {
       {/* Main View Router */}
       {isBuilder ? (
         /* ==================== BUILDER VIEW ==================== */
-        <BuilderMain 
-          editions={editions}
-          activeEditionYear={activeEditionYear}
-          onUpdateEdition={handleUpdateEdition}
-          onPreviewToggle={() => { setIsBuilder(false); window.location.hash = `#/home`; }}
-          standings={standings}
-          t={t}
-          lang={lang}
-        />
+        !supabase ? (
+          <main className="builder-access-wrap">
+            <section className="builder-access-card">
+              <h2>Salvataggio cloud non configurato</h2>
+              <p>Il pannello resta disattivato finché non è collegato al database condiviso.</p>
+            </section>
+          </main>
+        ) : authLoading || dataLoading ? (
+          <BuilderLogin client={supabase} checkingSession />
+        ) : !session ? (
+          <BuilderLogin client={supabase} />
+        ) : editorAccess === 'checking' ? (
+          <BuilderLogin client={supabase} checkingSession />
+        ) : editorAccess !== 'allowed' ? (
+          <main className="builder-access-wrap">
+            <section className="builder-access-card" role="alert">
+              <span className="badge badge-accent">Area riservata</span>
+              <h2>Account non abilitato</h2>
+              <p>Il tuo account può accedere ma non è stato autorizzato a modificare i dati del torneo.</p>
+              {editorAccess === 'error' && <p>Non è stato possibile verificare i permessi. Riprova più tardi.</p>}
+              <button className="cta-btn outline-btn" onClick={handleSignOut}>Esci</button>
+            </section>
+          </main>
+        ) : (
+          <BuilderMain
+            editions={editions}
+            activeEditionYear={activeEditionYear}
+            onUpdateEdition={handleUpdateEdition}
+            onUploadPhoto={handleUploadPhoto}
+            onSave={handleSave}
+            onSignOut={handleSignOut}
+            onPreviewToggle={handlePreview}
+            onReload={handleReload}
+            saveError={saveError}
+            standings={standings}
+            isDirty={isDirty}
+            isSaving={isSaving}
+            isReloading={isReloading}
+            saveMessage={saveMessage}
+            dataLoadError={dataLoadError}
+            t={t}
+            lang={lang}
+          />
+        )
       ) : (
         /* ==================== PUBLIC SITE VIEW ==================== */
         <main className="public-content-wrap">
+          {isPreview && session && (
+            <div className="save-feedback-banner is-pending" role="status">
+              Anteprima della tua bozza: le modifiche non salvate non sono visibili agli altri.
+              <button className="cta-btn outline-btn btn-sm" onClick={() => { setIsBuilder(true); window.location.hash = '#/builder'; }}>Torna al Builder</button>
+            </div>
+          )}
+          {supabase && dataLoadError && (
+            <div className="cloud-fallback-banner" role="status">
+              {dataSource === 'cloud' ? 'Aggiornamento non riuscito: mostro gli ultimi dati letti.' : 'Dati cloud non disponibili: mostro la copia locale.'}
+              <button className="cta-btn outline-btn btn-sm" onClick={() => refreshCloud()}>Riprova</button>
+            </div>
+          )}
           {/* Navigation Bar */}
           <nav className="public-navbar">
             <div className="nav-tabs-list">
@@ -450,7 +650,6 @@ function App() {
                 standings={standings}
                 getTeamColor={getTeamColor}
                 t={t}
-                lang={lang}
               />
             )}
 
@@ -478,14 +677,7 @@ function App() {
             <a href="mailto:filippo.drago@iit.it,simone.nitti@iit.it,calogero.boscarini@iit.it">
               {t.footerContactLink}
             </a>
-            {isBuilderAvailable && (
-              <>
-                <span>·</span>
-                <span onClick={handleResetToDefault} style={{ cursor: 'pointer', opacity: 0.6, fontSize: '11px' }}>
-                  {t.footerResetLink}
-                </span>
-              </>
-            )}
+
           </div>
         </div>
       </footer>
