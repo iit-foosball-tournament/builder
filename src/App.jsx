@@ -12,7 +12,8 @@ import {
 
 import databaseFallback from './data/database_fallback.json';
 import { translations } from './translations';
-import { supabase } from './supabase';
+import { supabase, updatePasswordForSession } from './supabase';
+import { parseInvitation, signOutInvitationSession } from './authInvitation';
 import {
   cleanupAbandonedTeamPhotos,
   loadTournamentEditions,
@@ -29,6 +30,7 @@ import PublicTeams from './components/public/PublicTeams';
 import PublicRules from './components/public/PublicRules';
 import BuilderMain from './components/builder/BuilderMain';
 import BuilderLogin from './components/builder/BuilderLogin';
+import BuilderActivation from './components/builder/BuilderActivation';
 
 import './App.css';
 
@@ -76,6 +78,8 @@ function App() {
   const pendingPhotos = useRef(new Map());
   const busyRef = useRef(false);
   const authUserRef = useRef(null);
+  const activationOwnerRef = useRef(null);
+  const [invitation, setInvitation] = useState(() => isBuilderAvailable ? parseInvitation(window.location) : null);
   const [isPreview, setIsPreview] = useState(false);
   const [dataLoading, setDataLoading] = useState(Boolean(supabase));
   const [isSaving, setIsSaving] = useState(false);
@@ -83,6 +87,8 @@ function App() {
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState(false);
   const [session, setSession] = useState(null);
+  const [activationNotice, setActivationNotice] = useState('');
+  const needsPasswordSetup = session?.user?.user_metadata?.foosball_password_setup_required === true;
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [editorAccess, setEditorAccess] = useState('checking');
   const { editions, dirty: isDirty, source: dataSource, error: dataLoadError } = dataState;
@@ -121,6 +127,7 @@ function App() {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '');
       setIsBuilder(isBuilderAvailable && hash.startsWith('builder'));
+      if (!hash.startsWith('builder')) setInvitation(null);
       if (['home', 'calendar', 'results', 'standings', 'teams', 'rules'].includes(hash)) setActiveTab(hash);
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -148,7 +155,7 @@ function App() {
 
   useEffect(() => {
     const protectDraft = event => {
-      if (!stateRef.current.dirty && !busyRef.current) return;
+      if (!stateRef.current.dirty && !busyRef.current && !activationOwnerRef.current) return;
       event.preventDefault();
       event.returnValue = '';
     };
@@ -161,6 +168,7 @@ function App() {
   useEffect(() => {
     if (!supabase) return undefined;
     let active = true;
+    let authEventReceived = false;
     const applySession = nextSession => {
       if (!active) return;
       const userId = nextSession?.user.id || null;
@@ -170,16 +178,23 @@ function App() {
         setIsPreview(false);
         setSaveMessage('');
         setEditorAccess('checking');
+        if (activationOwnerRef.current && activationOwnerRef.current !== userId) {
+          activationOwnerRef.current = null;
+          setInvitation(null);
+        }
       }
       authUserRef.current = userId;
       setSession(nextSession);
       setAuthLoading(false);
     };
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => applySession(nextSession));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      authEventReceived = true;
+      applySession(nextSession);
+    });
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) console.warn('Session restore failed:', error.message);
-      applySession(data?.session || null);
-    }).catch(() => applySession(null));
+      if (!authEventReceived) applySession(data?.session || null);
+    }).catch(() => { if (!authEventReceived) applySession(null); });
     return () => { active = false; subscription.unsubscribe(); };
   }, [dispatchData, clearPendingPhotos]);
 
@@ -315,6 +330,7 @@ function App() {
   }, [currentEdition]);
 
   const handleTabChange = (tab) => {
+    if (invitation || needsPasswordSetup) return;
     setActiveTab(tab);
     window.location.hash = `#/${tab}`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -477,7 +493,7 @@ function App() {
                 <button 
                   className="cta-btn primary-btn btn-sm"
                   onClick={() => { setIsPreview(false); setIsBuilder(false); window.location.hash = '#/home'; }}
-                  disabled={isSaving || isReloading}
+                  disabled={isSaving || isReloading || Boolean(invitation) || needsPasswordSetup}
                 >
                   <Eye size={14} /> {t.backToPublic}
                 </button>
@@ -507,8 +523,33 @@ function App() {
           </main>
         ) : authLoading || dataLoading ? (
           <BuilderLogin client={supabase} checkingSession />
+        ) : invitation || (needsPasswordSetup && editorAccess === 'allowed') ? (
+          <BuilderActivation
+            key={invitation?.tokenHash || session?.user?.id || 'invalid'}
+            client={supabase}
+            invitation={invitation}
+            resumeUser={!invitation && needsPasswordSetup ? session.user : null}
+            updateForSession={updatePasswordForSession}
+            onRecipientVerified={recipient => {
+              if (authUserRef.current !== recipient.id) return false;
+              activationOwnerRef.current = recipient.id;
+              return true;
+            }}
+            onComplete={async recipient => {
+              activationOwnerRef.current = null;
+              await signOutInvitationSession(supabase, recipient.id);
+              setActivationNotice('Password impostata. Accedi con la tua email e la nuova password.');
+              setInvitation(null);
+              setIsBuilder(true);
+              window.history.replaceState(window.history.state, '', `${window.location.pathname}#/builder`);
+            }}
+            onCancel={() => {
+              activationOwnerRef.current = null;
+              setInvitation(null);
+            }}
+          />
         ) : !session ? (
-          <BuilderLogin client={supabase} />
+          <BuilderLogin client={supabase} notice={activationNotice} />
         ) : editorAccess === 'checking' ? (
           <BuilderLogin client={supabase} checkingSession />
         ) : editorAccess !== 'allowed' ? (

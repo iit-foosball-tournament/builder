@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyRound, LoaderCircle, ShieldCheck } from 'lucide-react';
 
-function BuilderLogin({ client, checkingSession = false }) {
+function BuilderLogin({ client, checkingSession = false, notice = '' }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -39,6 +39,7 @@ function BuilderLogin({ client, checkingSession = false }) {
         <h2 id="builder-access-title">Accedi al Builder</h2>
         <p>Entra per aggiornare risultati, squadre e foto. Le modifiche saranno pubblicate sul sito quando premi Salva.</p>
 
+        {notice && <p role="status">{notice}</p>}
         {checkingSession ? (
           <div className="builder-access-progress"><LoaderCircle size={18} className="spin" /> Verifica accesso…</div>
         ) : (
