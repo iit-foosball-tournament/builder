@@ -22,7 +22,6 @@ import {
   uploadTeamPhoto
 } from './tournamentData';
 import { initialTournamentState, tournamentDraftReducer } from './tournamentDraft';
-import { ensureRoundDates } from './roundDates';
 import PublicHome from './components/public/PublicHome';
 import PublicCalendar from './components/public/PublicCalendar';
 import PublicResults from './components/public/PublicResults';
@@ -75,7 +74,7 @@ function App() {
   });
 
   const [dataState, setDataState] = useState(() => initialTournamentState(
-    Object.fromEntries(Object.entries(databaseFallback.editions || {}).map(([year, ed]) => [year, ensureRoundDates(ed)]))
+    Object.fromEntries(Object.entries(databaseFallback.editions || {}))
   ));
   const stateRef = useRef(dataState);
   const pendingPhotos = useRef(new Map());

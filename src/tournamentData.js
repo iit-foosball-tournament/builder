@@ -1,5 +1,3 @@
-import { ensureRoundDates } from './roundDates.js';
-
 export const TOURNAMENT_TABLE = 'tournament_editions';
 export const TEAM_PHOTOS_BUCKET = 'foosball-team-photos';
 export const MAX_TEAM_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -101,7 +99,6 @@ export function mapEditionRows(rows) {
     try {
       validateEdition(row.data);
       if (row.data.year !== undefined && row.data.year !== year) throw new Error('year mismatch');
-      row.data = ensureRoundDates(row.data);
     } catch {
       throw new Error('Il database contiene una stagione con formato non valido.');
     }
