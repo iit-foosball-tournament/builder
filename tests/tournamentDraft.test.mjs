@@ -47,6 +47,17 @@ test('functional edits patch the latest state rather than an old upload closure'
   assert.equal(state.editions[2026].teams.length, 0);
 });
 
+test('restore resurrects an unsaved browser draft without touching the confirmed revision', () => {
+  let state = reduce(initialTournamentState({}), load('cloud', 7));
+  assert.equal(state.dirty, false);
+  state = reduce(state, { type: 'restore', year: '2026', edition: edition('recovered draft') });
+  assert.equal(state.editions[2026].name, 'recovered draft');
+  assert.equal(state.dirty, true);
+  assert.equal(state.source, 'cloud');
+  assert.equal(state.revisions[2026], 7);
+  assert.equal(state.savedEditions[2026].name, 'cloud');
+});
+
 test('read failures preserve data and drafts; confirmed reload alone discards edits', () => {
   let state = reduce(initialTournamentState({}), load('cloud', 1));
   state = reduce(state, edit('draft'));

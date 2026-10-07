@@ -22,6 +22,7 @@ import {
   uploadTeamPhoto
 } from './tournamentData';
 import { initialTournamentState, tournamentDraftReducer } from './tournamentDraft';
+import { ensureRoundDates } from './roundDates';
 import PublicHome from './components/public/PublicHome';
 import PublicCalendar from './components/public/PublicCalendar';
 import PublicResults from './components/public/PublicResults';
@@ -73,17 +74,18 @@ function App() {
     return isBuilderAvailable && window.location.hash.startsWith('#/builder');
   });
 
-  const [dataState, setDataState] = useState(() => initialTournamentState(databaseFallback.editions || {}));
+  const [dataState, setDataState] = useState(() => initialTournamentState(
+    Object.fromEntries(Object.entries(databaseFallback.editions || {}).map(([year, ed]) => [year, ensureRoundDates(ed)]))
+  ));
   const stateRef = useRef(dataState);
   const pendingPhotos = useRef(new Map());
   const busyRef = useRef(false);
   const authUserRef = useRef(null);
   const activationOwnerRef = useRef(null);
+  const draftRestoredRef = useRef(false);
   const [invitation, setInvitation] = useState(() => isBuilderAvailable ? parseInvitation(window.location) : null);
-  const [isPreview, setIsPreview] = useState(false);
   const [dataLoading, setDataLoading] = useState(Boolean(supabase));
   const [isSaving, setIsSaving] = useState(false);
-  const [isReloading, setIsReloading] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState(false);
   const [session, setSession] = useState(null);
@@ -94,6 +96,10 @@ function App() {
   const { editions, dirty: isDirty, source: dataSource, error: dataLoadError } = dataState;
   const activeEditionYear = String(databaseFallback.activeEditionYear) in editions
     ? String(databaseFallback.activeEditionYear) : Object.keys(editions).sort().at(-1);
+  const draftKey = useCallback((year) => `iit_foosball_draft_${year}`, []);
+  const clearDraftBackup = useCallback((year = activeEditionYear) => {
+    try { localStorage.removeItem(draftKey(year)); } catch { /* ignore */ }
+  }, [activeEditionYear, draftKey]);
 
   const dispatchData = useCallback(action => {
     stateRef.current = tournamentDraftReducer(stateRef.current, action);
@@ -122,6 +128,40 @@ function App() {
       setDataLoading(false);
     }
   }, [dispatchData, clearPendingPhotos]);
+
+  // Restore an unsaved draft recovered from browser storage (once, after the cloud has loaded).
+  useEffect(() => {
+    if (dataState.source !== 'cloud' || dataState.dirty || draftRestoredRef.current) return;
+    draftRestoredRef.current = true;
+    const year = activeEditionYear;
+    let raw;
+    try { raw = localStorage.getItem(draftKey(year)); } catch { return; }
+    if (!raw) return;
+    try {
+      const stored = JSON.parse(raw);
+      if (!stored || String(stored.year) !== year || !stored.edition) return;
+      const cleaned = {
+        ...stored.edition,
+        teams: (stored.edition.teams || []).map((t) => (t.photo && t.photo.startsWith('blob:') ? { ...t, photo: '' } : t)),
+      };
+      dispatchData({ type: 'restore', year, edition: cleaned });
+      queueMicrotask(() => {
+        setSaveMessage('Bozza non salvata ripristinata dal browser: premi Salva per pubblicarla.');
+        setSaveError(false);
+      });
+    } catch { /* ignore corrupt payload */ }
+  }, [dataState.source, dataState.dirty, activeEditionYear, dispatchData, draftKey]);
+
+  // Persist the dirty draft to localStorage (debounced) so an accidental reload/close loses nothing.
+  useEffect(() => {
+    if (!dataState.dirty) return;
+    const year = activeEditionYear;
+    const timer = window.setTimeout(() => {
+      try { localStorage.setItem(draftKey(year), JSON.stringify({ year, edition: dataState.editions[year] })); }
+      catch { /* quota exceeded: keep the draft in memory only */ }
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [dataState.dirty, dataState.editions, activeEditionYear, draftKey]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -175,7 +215,6 @@ function App() {
       if (authUserRef.current !== userId) {
         dispatchData({ type: 'discard' });
         clearPendingPhotos();
-        setIsPreview(false);
         setSaveMessage('');
         setEditorAccess('checking');
         if (activationOwnerRef.current && activationOwnerRef.current !== userId) {
@@ -212,9 +251,9 @@ function App() {
   }, [isBuilder, session]);
 
   const currentEdition = useMemo(() => {
-    const visible = isBuilder || (isPreview && session) ? dataState.editions : dataState.savedEditions;
+    const visible = isBuilder ? dataState.editions : dataState.savedEditions;
     return visible[activeEditionYear] || { name: '', teams: [], matches: [] };
-  }, [dataState, activeEditionYear, isBuilder, isPreview, session]);
+  }, [dataState, activeEditionYear, isBuilder]);
 
   // Helper to resolve team name and color
   const getTeamName = (teamIdOrName) => {
@@ -393,6 +432,7 @@ function App() {
         year, edition, expectedRevision: snapshot.revisions[year]
       });
       committed = true;
+      clearDraftBackup(year);
       if (authUserRef.current === userId) {
         dispatchData({ type: 'saved', year, edition, revision });
         clearPendingPhotos();
@@ -400,6 +440,9 @@ function App() {
       } else {
         await refreshCloud();
       }
+      // Auto-reload the online data after saving so the admin always sees the latest state
+      // (including edits made by other editors) without having to reload manually.
+      await refreshCloud(true);
       const currentPhotos = new Set(Object.values(stateRef.current.savedEditions).flatMap(item => item.teams.map(team => team.photo)));
       const obsolete = snapshot.savedEditions[year].teams.map(team => team.photo).filter(path => path && !currentPhotos.has(path));
       try {
@@ -420,37 +463,15 @@ function App() {
     }
   };
 
-  const handleReload = async () => {
-    if (busyRef.current) return;
-    if (stateRef.current.dirty && !confirm('Ricaricare i dati online e scartare le tue modifiche non salvate? Annulla per mantenere la bozza.')) return;
-    busyRef.current = true;
-    setIsReloading(true);
-    try {
-      if (await refreshCloud(true)) {
-        setSaveMessage('Dati online ricaricati.');
-        setSaveError(false);
-      }
-    } finally {
-      busyRef.current = false;
-      setIsReloading(false);
-    }
-  };
-
   const handleSignOut = async () => {
     if (!supabase || busyRef.current) return;
     if (stateRef.current.dirty && !confirm('Uscire e scartare le modifiche non salvate?')) return;
     const { error } = await supabase.auth.signOut();
+    clearDraftBackup();
     if (error) {
       setSaveMessage('Non è stato possibile uscire: riprova.');
       setSaveError(true);
     }
-  };
-
-  const handlePreview = () => {
-    if (busyRef.current) return;
-    setIsPreview(true);
-    setIsBuilder(false);
-    window.location.hash = '#/home';
   };
 
   return (
@@ -492,8 +513,8 @@ function App() {
               {isBuilder ? (
                 <button 
                   className="cta-btn primary-btn btn-sm"
-                  onClick={() => { setIsPreview(false); setIsBuilder(false); window.location.hash = '#/home'; }}
-                  disabled={isSaving || isReloading || Boolean(invitation) || needsPasswordSetup}
+                  onClick={() => { setIsBuilder(false); window.location.hash = '#/home'; }}
+                  disabled={isSaving || Boolean(invitation) || needsPasswordSetup}
                 >
                   <Eye size={14} /> {t.backToPublic}
                 </button>
@@ -570,13 +591,10 @@ function App() {
             onUploadPhoto={handleUploadPhoto}
             onSave={handleSave}
             onSignOut={handleSignOut}
-            onPreviewToggle={handlePreview}
-            onReload={handleReload}
             saveError={saveError}
             standings={standings}
             isDirty={isDirty}
             isSaving={isSaving}
-            isReloading={isReloading}
             saveMessage={saveMessage}
             dataLoadError={dataLoadError}
             t={t}
@@ -586,12 +604,6 @@ function App() {
       ) : (
         /* ==================== PUBLIC SITE VIEW ==================== */
         <main className="public-content-wrap">
-          {isPreview && session && (
-            <div className="save-feedback-banner is-pending" role="status">
-              Anteprima della tua bozza: le modifiche non salvate non sono visibili agli altri.
-              <button className="cta-btn outline-btn btn-sm" onClick={() => { setIsBuilder(true); window.location.hash = '#/builder'; }}>Torna al Builder</button>
-            </div>
-          )}
           {supabase && dataLoadError && (
             <div className="cloud-fallback-banner" role="status">
               {dataSource === 'cloud' ? 'Aggiornamento non riuscito: mostro gli ultimi dati letti.' : 'Dati cloud non disponibili: mostro la copia locale.'}

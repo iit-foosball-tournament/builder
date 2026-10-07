@@ -21,6 +21,9 @@ export function tournamentDraftReducer(state, action) {
     }
     case 'edit':
       return { ...state, editions: { ...state.editions, [action.year]: action.update(state.editions[action.year]) }, dirty: true };
+    case 'restore':
+      // Restore an unsaved draft recovered from browser storage (never clobbers an active draft).
+      return { ...state, editions: { ...state.editions, [String(action.year)]: action.edition }, dirty: true, source: 'cloud' };
     case 'saved':
       return { ...state, editions: { ...state.editions, [action.year]: action.edition },
         savedEditions: { ...state.savedEditions, [action.year]: action.edition },

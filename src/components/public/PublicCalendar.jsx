@@ -1,62 +1,45 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar, Filter, Search, MapPin, Clock, Shield } from 'lucide-react';
+import { formatDateLabel, getMatchDate, groupDates } from '../../roundDates';
 
-function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
-  const [selectedRound, setSelectedRound] = useState('all');
+function PublicCalendar({ edition, getTeamColor, t, lang }) {
+  const [selectedDate, setSelectedDate] = useState('all');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const matches = edition.matches || [];
   const teams = edition.teams || [];
+  const roundDates = edition.roundDates || {};
+
+  const dateOptions = useMemo(() => {
+    const dates = new Set(matches.map(m => getMatchDate(m, roundDates)).filter(Boolean));
+    return Array.from(dates).sort();
+  }, [matches, roundDates]);
 
   const filteredMatches = useMemo(() => {
     return matches.filter(m => {
       if (m.status === 'played') return false;
 
-      if (selectedRound !== 'all' && m.round !== selectedRound) {
+      if (selectedDate !== 'all' && getMatchDate(m, roundDates) !== selectedDate) {
         return false;
       }
 
       if (selectedTeam !== 'all') {
-        const teamMatch = m.team1.toLowerCase() === selectedTeam.toLowerCase() || 
+        const teamMatch = m.team1.toLowerCase() === selectedTeam.toLowerCase() ||
                           m.team2.toLowerCase() === selectedTeam.toLowerCase();
         if (!teamMatch) return false;
       }
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesQuery = m.team1.toLowerCase().includes(q) || 
-                             m.team2.toLowerCase().includes(q) ||
-                             m.round.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
+        return m.team1.toLowerCase().includes(q) || m.team2.toLowerCase().includes(q);
       }
 
       return true;
     });
-  }, [matches, selectedRound, selectedTeam, searchQuery]);
+  }, [matches, selectedDate, selectedTeam, searchQuery, roundDates]);
 
-  const matchesByRound = useMemo(() => {
-    const groups = {};
-    filteredMatches.forEach(m => {
-      if (!groups[m.round]) {
-        groups[m.round] = [];
-      }
-      groups[m.round].push(m);
-    });
-    return groups;
-  }, [filteredMatches]);
-
-  const roundsList = [];
-  for (let i = 1; i <= 29; i++) {
-    roundsList.push(`Giornata ${i}`);
-  }
-
-  const formatRoundTitle = (roundName) => {
-    if (lang === 'en') {
-      return roundName.replace('Giornata', 'Round');
-    }
-    return roundName;
-  };
+  const matchesByDate = useMemo(() => groupDates(filteredMatches, roundDates), [filteredMatches, roundDates]);
 
   return (
     <div className="calendar-page">
@@ -72,17 +55,17 @@ function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
       {/* Filter and Search Bar */}
       <div className="filter-controls-card">
         <div className="filter-row">
-          {/* Round Selector */}
+          {/* Date Selector */}
           <div className="filter-item">
             <label><Filter size={14} /> {t.filterRoundLabel}</label>
-            <select 
-              value={selectedRound} 
-              onChange={e => setSelectedRound(e.target.value)}
+            <select
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
               className="filter-select"
             >
               <option value="all">{t.allRounds}</option>
-              {roundsList.map(r => (
-                <option key={r} value={r}>{formatRoundTitle(r)}</option>
+              {dateOptions.map(date => (
+                <option key={date} value={date}>{formatDateLabel(date, lang)}</option>
               ))}
             </select>
           </div>
@@ -90,8 +73,8 @@ function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
           {/* Team Selector */}
           <div className="filter-item">
             <label><Shield size={14} /> {t.filterTeamLabel}</label>
-            <select 
-              value={selectedTeam} 
+            <select
+              value={selectedTeam}
               onChange={e => setSelectedTeam(e.target.value)}
               className="filter-select"
             >
@@ -106,9 +89,9 @@ function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
           <div className="filter-item search-item">
             <label><Search size={14} /> {t.searchTeamLabel}</label>
             <div className="search-input-wrap">
-              <input 
-                type="text" 
-                placeholder={t.searchPlaceholder} 
+              <input
+                type="text"
+                placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -123,10 +106,10 @@ function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
         {/* Quick summary line */}
         <div className="filter-summary">
           <span>{t.matchesFoundCount} <strong>{filteredMatches.length}</strong></span>
-          {(selectedRound !== 'all' || selectedTeam !== 'all' || searchQuery) && (
-            <button 
-              className="reset-filters-btn" 
-              onClick={() => { setSelectedRound('all'); setSelectedTeam('all'); setSearchQuery(''); }}
+          {(selectedDate !== 'all' || selectedTeam !== 'all' || searchQuery) && (
+            <button
+              className="reset-filters-btn"
+              onClick={() => { setSelectedDate('all'); setSelectedTeam('all'); setSearchQuery(''); }}
             >
               {t.resetFilters}
             </button>
@@ -135,16 +118,16 @@ function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
       </div>
 
       {/* Schedule Display */}
-      {Object.keys(matchesByRound).length > 0 ? (
+      {Object.keys(matchesByDate).length > 0 ? (
         <div className="rounds-container">
-          {Object.entries(matchesByRound).map(([roundName, roundMatches]) => (
-            <div key={roundName} className="round-group-card">
+          {Object.entries(matchesByDate).map(([date, dateMatches]) => (
+            <div key={date} className="round-group-card">
               <div className="round-group-header">
-                <h3>{formatRoundTitle(roundName)}</h3>
-                <span className="round-match-count">{roundMatches.length} {t.matchesToPlay}</span>
+                <h3>{formatDateLabel(date, lang)}</h3>
+                <span className="round-match-count">{dateMatches.length} {t.matchesToPlay}</span>
               </div>
               <div className="matches-grid">
-                {roundMatches.map(m => (
+                {dateMatches.map(m => (
                   <div key={m.id} className="schedule-match-card">
                     <div className="match-top-meta">
                       <span className="status-pill scheduled">{t.scheduledBadge}</span>
@@ -168,7 +151,7 @@ function PublicCalendar({ edition, getTeamName, getTeamColor, t, lang }) {
                     <div className="match-bottom-bar">
                       <div className="timing-info">
                         <Clock size={13} />
-                        <span>{m.date ? `${m.date} ${m.time}` : t.arrangedTime}</span>
+                        <span>{m.time ? `${formatDateLabel(date, lang)} · ${m.time}` : formatDateLabel(date, lang)}</span>
                       </div>
                     </div>
                   </div>

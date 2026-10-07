@@ -3,7 +3,7 @@ import {
   Users,
   Calendar,
   Award,
-  Play,
+  CalendarDays,
   HelpCircle,
   Save,
   CheckCircle2,
@@ -13,6 +13,7 @@ import {
 import TeamEditor from './TeamEditor';
 import MatchEditor from './MatchEditor';
 import KnockoutEditor from './KnockoutEditor';
+import RoundDatesEditor from './RoundDatesEditor';
 import ColleagueGuide from './ColleagueGuide';
 
 function BuilderMain({
@@ -22,13 +23,10 @@ function BuilderMain({
   onUploadPhoto,
   onSave,
   onSignOut,
-  onPreviewToggle,
-  onReload,
   saveError = false,
   standings = [],
   isDirty = false,
   isSaving = false,
-  isReloading = false,
   saveMessage = '',
   dataLoadError = ''
 }) {
@@ -73,10 +71,17 @@ function BuilderMain({
     onUpdateEdition(edition => ({ ...edition, knockout: { ...edition.knockout, [key]: patch } }));
   };
 
+  const handleUpdateRoundDate = (roundNum, date) => {
+    onUpdateEdition(edition => ({
+      ...edition,
+      roundDates: { ...(edition.roundDates || {}), [String(roundNum)]: date }
+    }));
+  };
+
   const messageIsError = saveError;
 
   return (
-    <fieldset className="builder-main-workspace builder-workspace-fieldset" disabled={isSaving || isReloading} aria-busy={isSaving || isReloading}>
+    <fieldset className="builder-main-workspace builder-workspace-fieldset" disabled={isSaving} aria-busy={isSaving}>
       <div className="admin-top-bar">
         <div className="admin-title-box">
           <span className="badge badge-accent">Builder Workspace</span>
@@ -93,10 +98,6 @@ function BuilderMain({
             {isSaving ? <LoaderCircle size={16} className="spin" /> : <Save size={16} />}
             {isSaving ? 'Salvataggio…' : 'Salva'}
           </button>
-          <button className="cta-btn primary-btn" onClick={onPreviewToggle}>
-            <Play size={15} /> Anteprima sito
-          </button>
-          <button className="cta-btn outline-btn" onClick={onReload}>{isReloading ? 'Lettura dati…' : 'Ricarica dati online'}</button>
           <button className="cta-btn outline-btn" onClick={onSignOut}>
             <LogOut size={15} /> Esci
           </button>
@@ -134,6 +135,12 @@ function BuilderMain({
           <Award size={16} /> 🏆 Playoff (Top 8)
         </button>
         <button
+          className={`builder-tab-btn ${activeBuilderTab === 'dates' ? 'active' : ''}`}
+          onClick={() => setActiveBuilderTab('dates')}
+        >
+          <CalendarDays size={16} /> 🗓️ Giornate &amp; Date
+        </button>
+        <button
           className={`builder-tab-btn ${activeBuilderTab === 'guide' ? 'active' : ''}`}
           onClick={() => setActiveBuilderTab('guide')}
         >
@@ -143,7 +150,7 @@ function BuilderMain({
 
       <div className="builder-tab-content mt-3">
         {activeBuilderTab === 'matches' && (
-          <MatchEditor matches={matches} teams={teams} onUpdateMatch={handleUpdateMatch} />
+          <MatchEditor matches={matches} teams={teams} roundDates={currentEdition.roundDates || {}} onUpdateMatch={handleUpdateMatch} />
         )}
         {activeBuilderTab === 'teams' && (
           <TeamEditor
@@ -159,6 +166,13 @@ function BuilderMain({
             knockout={knockout}
             standings={standings}
             onUpdateKnockout={handleUpdateKnockout}
+          />
+        )}
+        {activeBuilderTab === 'dates' && (
+          <RoundDatesEditor
+            matches={matches}
+            roundDates={currentEdition.roundDates || {}}
+            onUpdateRoundDate={handleUpdateRoundDate}
           />
         )}
         {activeBuilderTab === 'guide' && <ColleagueGuide />}

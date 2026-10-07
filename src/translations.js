@@ -49,8 +49,8 @@ export const translations = {
     // Calendar
     calendarPageTitle: "Calendario Eventi in Programma",
     calendarPageDesc: "Consulta il calendario completo delle 29 Giornate di campionato (435 partite). Le partite vengono concordate autonomamente tra le squadre presso il tavolo della mensa CCT Morego (08:00 – 15:00).",
-    filterRoundLabel: "Filtra per Giornata:",
-    allRounds: "Tutte le 29 Giornate",
+    filterRoundLabel: "Filtra per Data:",
+    allRounds: "Tutte le date",
     filterTeamLabel: "Filtra per Squadra:",
     allTeams: "Tutte le 30 Squadre",
     searchTeamLabel: "Cerca Squadra:",
@@ -174,8 +174,8 @@ export const translations = {
     // Calendar
     calendarPageTitle: "Scheduled Match Calendar",
     calendarPageDesc: "Consult the full schedule of 29 championship rounds (435 matches). Matches are arranged autonomously by teams at the CCT Morego cafeteria table (8:00 AM – 3:00 PM).",
-    filterRoundLabel: "Filter by Round:",
-    allRounds: "All 29 Rounds",
+    filterRoundLabel: "Filter by Date:",
+    allRounds: "All dates",
     filterTeamLabel: "Filter by Team:",
     allTeams: "All 30 Teams",
     searchTeamLabel: "Search Team:",

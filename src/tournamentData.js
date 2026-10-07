@@ -1,10 +1,12 @@
+import { ensureRoundDates } from './roundDates.js';
+
 export const TOURNAMENT_TABLE = 'tournament_editions';
 export const TEAM_PHOTOS_BUCKET = 'foosball-team-photos';
 export const MAX_TEAM_PHOTO_BYTES = 5 * 1024 * 1024;
 
 const PHOTO_PATH = /^teams\/[a-zA-Z0-9_-]{1,80}\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpg|png|webp)$/i;
 const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const ROOT_KEYS = ['year', 'name', 'subtitle', 'location', 'accessHours', 'isFinished', 'organizers', 'teams', 'matches', 'rounds', 'knockout', 'customTrophies', 'rulesIt', 'rulesEn'];
+const ROOT_KEYS = ['year', 'name', 'subtitle', 'location', 'accessHours', 'isFinished', 'organizers', 'teams', 'matches', 'rounds', 'knockout', 'customTrophies', 'rulesIt', 'rulesEn', 'roundDates'];
 const TEAM_KEYS = ['id', 'num', 'name', 'logoColor', 'player1', 'player2', 'photo'];
 const MATCH_KEYS = ['id', 'name', 'round', 'roundNum', 'matchNum', 'team1', 'team2', 'score1', 'score2', 'status', 'date', 'time', 'pitch'];
 
@@ -47,8 +49,15 @@ export function isTeamPhotoPath(path) {
   return typeof path === 'string' && PHOTO_PATH.test(path);
 }
 
+function validRoundDates(roundDates) {
+  return object(roundDates) && Object.entries(roundDates).every(
+    ([round, date]) => /^\d{1,2}$/.test(round) && typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
+  );
+}
+
 // Public data is a closed schema: arbitrary keys can leak contact details or embedded media.
 export function validateEdition(edition) {
+  const invalidRoundDates = edition.roundDates !== undefined && !validRoundDates(edition.roundDates);
   if (!object(edition) || !keys(edition, ROOT_KEYS) ||
       !string(edition.name) || !Array.isArray(edition.teams) ||
       !Array.isArray(edition.matches) ||
@@ -69,7 +78,8 @@ export function validateEdition(edition) {
           string(person.name) && optionalStrings(person, ['email'])))) ||
       (edition.customTrophies !== undefined && (!Array.isArray(edition.customTrophies) ||
         !edition.customTrophies.every(trophy => object(trophy) && keys(trophy, ['name', 'team', 'description']) &&
-          optionalStrings(trophy, ['name', 'team', 'description']))))) {
+          optionalStrings(trophy, ['name', 'team', 'description'])))) ||
+      invalidRoundDates) {
     throw new Error('I dati della stagione non sono validi (squadre, partite o foto).');
   }
   return edition;
@@ -91,6 +101,7 @@ export function mapEditionRows(rows) {
     try {
       validateEdition(row.data);
       if (row.data.year !== undefined && row.data.year !== year) throw new Error('year mismatch');
+      row.data = ensureRoundDates(row.data);
     } catch {
       throw new Error('Il database contiene una stagione con formato non valido.');
     }

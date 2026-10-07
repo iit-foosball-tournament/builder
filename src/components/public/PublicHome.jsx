@@ -1,8 +1,9 @@
-import React from 'react';
-import { Calendar, Trophy, Users, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
+import { Calendar, Trophy, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
+import { formatDateLabel, getMatchDate } from '../../roundDates';
 
-function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavigateTab, t, lang }) {
+function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
   const matches = edition.matches || [];
+  const roundDates = edition.roundDates || {};
   
   const scheduledMatches = matches.filter(m => m.status === 'scheduled');
   const playedMatches = matches.filter(m => m.status === 'played');
@@ -134,8 +135,8 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
                 {nextMatches.map(m => (
                   <div key={m.id} className="mini-match-row">
                     <div className="match-meta-tag">
-                      <span className="round-badge">{m.round}</span>
-                      {m.date ? <span className="date-badge">{m.date} {m.time}</span> : <span className="tbd-badge">{t.tbScheduled}</span>}
+                      <span className="round-badge">{formatDateLabel(getMatchDate(m, roundDates), lang)}</span>
+                      {m.time ? <span className="date-badge">{m.time}</span> : null}
                     </div>
                     <div className="match-teams-display">
                       <span className="team-name team-home">{m.team1}</span>
@@ -170,8 +171,8 @@ function PublicHome({ edition, getTeamName, getTeamColor, standings = [], onNavi
                 {recentResults.map(m => (
                   <div key={m.id} className="result-card">
                     <div className="result-header">
-                      <span className="round-tag">{m.round}</span>
-                      {m.date && <span className="date-tag">{m.date}</span>}
+                      <span className="round-tag">{formatDateLabel(getMatchDate(m, roundDates), lang)}</span>
+                      {m.time && <span className="date-tag">{m.time}</span>}
                     </div>
                     <div className="result-score-line">
                       <div className={`result-team ${m.score1 > m.score2 ? 'winner' : ''}`}>

@@ -914,6 +914,9 @@ body {
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .schedule-match-card:hover {
@@ -927,6 +930,8 @@ body {
   align-items: center;
   margin-bottom: 10px;
   font-size: 11px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .status-pill {
@@ -952,6 +957,9 @@ body {
   align-items: center;
   gap: 4px;
   color: var(--text-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .match-teams-box {
@@ -959,6 +967,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .team-entry {
@@ -981,9 +991,7 @@ body {
   font-weight: 800;
   font-size: 13px;
   color: var(--primary-navy);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .match-versus-badge {
@@ -1009,6 +1017,9 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 /* ==================== RESULTS PAGE ==================== */
@@ -2383,4 +2394,10 @@ body {
     font-size: 11px;
     gap: 4px;
   }
+}
+/* Match edit card: let long team names wrap instead of overflowing the card on narrow screens */
+.mce-team-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }

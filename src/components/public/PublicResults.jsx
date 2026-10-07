@@ -1,62 +1,45 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Flame, Filter, Search, Shield, CheckCircle, Clock, Trophy } from 'lucide-react';
+import { formatDateLabel, getMatchDate, groupDates } from '../../roundDates';
 
-function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
-  const [selectedRound, setSelectedRound] = useState('all');
+function PublicResults({ edition, getTeamColor, t, lang }) {
+  const [selectedDate, setSelectedDate] = useState('all');
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const matches = edition.matches || [];
   const teams = edition.teams || [];
+  const roundDates = edition.roundDates || {};
+
+  const dateOptions = useMemo(() => {
+    const dates = new Set(matches.map(m => getMatchDate(m, roundDates)).filter(Boolean));
+    return Array.from(dates).sort();
+  }, [matches, roundDates]);
 
   const playedMatches = useMemo(() => {
     return matches.filter(m => {
       if (m.status !== 'played') return false;
 
-      if (selectedRound !== 'all' && m.round !== selectedRound) {
+      if (selectedDate !== 'all' && getMatchDate(m, roundDates) !== selectedDate) {
         return false;
       }
 
       if (selectedTeam !== 'all') {
-        const teamMatch = m.team1.toLowerCase() === selectedTeam.toLowerCase() || 
+        const teamMatch = m.team1.toLowerCase() === selectedTeam.toLowerCase() ||
                           m.team2.toLowerCase() === selectedTeam.toLowerCase();
         if (!teamMatch) return false;
       }
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesQuery = m.team1.toLowerCase().includes(q) || 
-                             m.team2.toLowerCase().includes(q) ||
-                             m.round.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
+        return m.team1.toLowerCase().includes(q) || m.team2.toLowerCase().includes(q);
       }
 
       return true;
     });
-  }, [matches, selectedRound, selectedTeam, searchQuery]);
+  }, [matches, selectedDate, selectedTeam, searchQuery, roundDates]);
 
-  const resultsByRound = useMemo(() => {
-    const groups = {};
-    playedMatches.forEach(m => {
-      if (!groups[m.round]) {
-        groups[m.round] = [];
-      }
-      groups[m.round].push(m);
-    });
-    return groups;
-  }, [playedMatches]);
-
-  const roundsList = [];
-  for (let i = 1; i <= 29; i++) {
-    roundsList.push(`Giornata ${i}`);
-  }
-
-  const formatRoundTitle = (roundName) => {
-    if (lang === 'en') {
-      return roundName.replace('Giornata', 'Round');
-    }
-    return roundName;
-  };
+  const resultsByDate = useMemo(() => groupDates(playedMatches, roundDates), [playedMatches, roundDates]);
 
   return (
     <div className="results-page">
@@ -72,17 +55,17 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
       {/* Filter and Search Bar */}
       <div className="filter-controls-card">
         <div className="filter-row">
-          {/* Round Selector */}
+          {/* Date Selector */}
           <div className="filter-item">
             <label><Filter size={14} /> {t.filterRoundLabel}</label>
-            <select 
-              value={selectedRound} 
-              onChange={e => setSelectedRound(e.target.value)}
+            <select
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
               className="filter-select"
             >
               <option value="all">{t.allRounds}</option>
-              {roundsList.map(r => (
-                <option key={r} value={r}>{formatRoundTitle(r)}</option>
+              {dateOptions.map(date => (
+                <option key={date} value={date}>{formatDateLabel(date, lang)}</option>
               ))}
             </select>
           </div>
@@ -90,8 +73,8 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
           {/* Team Selector */}
           <div className="filter-item">
             <label><Shield size={14} /> {t.filterTeamLabel}</label>
-            <select 
-              value={selectedTeam} 
+            <select
+              value={selectedTeam}
               onChange={e => setSelectedTeam(e.target.value)}
               className="filter-select"
             >
@@ -106,9 +89,9 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
           <div className="filter-item search-item">
             <label><Search size={14} /> {t.searchTeamLabel}</label>
             <div className="search-input-wrap">
-              <input 
-                type="text" 
-                placeholder={t.searchPlaceholder} 
+              <input
+                type="text"
+                placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -123,10 +106,10 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
         {/* Quick summary line */}
         <div className="filter-summary">
           <span>{t.completedMatchesCount} <strong>{playedMatches.length}</strong></span>
-          {(selectedRound !== 'all' || selectedTeam !== 'all' || searchQuery) && (
-            <button 
-              className="reset-filters-btn" 
-              onClick={() => { setSelectedRound('all'); setSelectedTeam('all'); setSearchQuery(''); }}
+          {(selectedDate !== 'all' || selectedTeam !== 'all' || searchQuery) && (
+            <button
+              className="reset-filters-btn"
+              onClick={() => { setSelectedDate('all'); setSelectedTeam('all'); setSearchQuery(''); }}
             >
               {t.resetFilters}
             </button>
@@ -137,14 +120,14 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
       {/* Results Display */}
       {playedMatches.length > 0 ? (
         <div className="rounds-container">
-          {Object.entries(resultsByRound).map(([roundName, roundResults]) => (
-            <div key={roundName} className="round-group-card">
+          {Object.entries(resultsByDate).map(([date, dateResults]) => (
+            <div key={date} className="round-group-card">
               <div className="round-group-header">
-                <h3>{formatRoundTitle(roundName)}</h3>
-                <span className="round-match-count">{roundResults.length} {t.completedMatchesLabel}</span>
+                <h3>{formatDateLabel(date, lang)}</h3>
+                <span className="round-match-count">{dateResults.length} {t.completedMatchesLabel}</span>
               </div>
               <div className="results-grid">
-                {roundResults.map(m => {
+                {dateResults.map(m => {
                   const s1 = parseInt(m.score1, 10);
                   const s2 = parseInt(m.score2, 10);
                   const isDraw = s1 === s2;
@@ -157,7 +140,11 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
                         <span className="status-pill played">
                           <CheckCircle size={12} /> {t.statusFinal}
                         </span>
-                        {m.date && <span className="date-info">{m.date}</span>}
+                        {m.time && (
+                          <span className="date-info">
+                            <Clock size={12} /> {m.time}
+                          </span>
+                        )}
                       </div>
 
                       <div className="result-scoreboard">
@@ -198,7 +185,7 @@ function PublicResults({ edition, getTeamName, getTeamColor, t, lang }) {
         </div>
       ) : (
         <div className="no-matches-found">
-          <Clock size={48} className="text-muted mb-2" />
+          <Flame size={48} className="text-muted mb-2" />
           <h3>{t.noResultsFound}</h3>
           <p>{t.noResultsFoundDesc}</p>
         </div>
