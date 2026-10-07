@@ -160,7 +160,7 @@ function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch 
               </div>
 
               {/* Teams & Score Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 30px 70px 1fr', gap: '12px', alignItems: 'center', textAlign: 'center' }}>
+              <div className="mce-score-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 70px 30px 70px 1fr', gap: '12px', alignItems: 'center', textAlign: 'center' }}>
                 {/* Home Team */}
                 <div className="mce-team-name" style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>
                   {m.team1}

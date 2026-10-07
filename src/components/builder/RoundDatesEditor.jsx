@@ -32,8 +32,9 @@ function RoundDatesEditor({ matches = [], roundDates = {}, onUpdateRoundDate }) 
 
       <div className="card mb-4">
         <div className="card-body">
-          <p className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', marginTop: 0 }}>
-            <Info size={14} /> Ogni modifica diventa efficace dopo aver premuto <strong>Salva</strong>.
+          <p className="text-muted" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12px', marginTop: 0 }}>
+            <Info size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <span>Ogni modifica diventa efficace dopo aver premuto <strong>Salva</strong>.</span>
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%,260px),1fr))', gap: '12px' }}>
             {roundNums.map(num => {

@@ -70,7 +70,7 @@ function KnockoutEditor({ knockout = {}, standings = [], onUpdateKnockout }) {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 20px 60px 1fr', gap: '8px', alignItems: 'center' }}>
+              <div className="ko-score-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 60px 20px 60px 1fr', gap: '8px', alignItems: 'center' }}>
                 <div>
                   <input 
                     type="text" 
