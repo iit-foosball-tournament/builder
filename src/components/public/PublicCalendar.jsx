@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Filter, Search, MapPin, Clock, Shield } from 'lucide-react';
-import { formatDateLabel, matchDate, hasDate, matchDateKey, groupMatchesByDate, NO_DATE } from '../../roundDates';
+import { formatDateLabel, matchDate, hasDate, matchDateKey, buildDisplayGroups, NO_DATE } from '../../roundDates';
 
 function PublicCalendar({ edition, getTeamColor, t, lang }) {
   const [selectedDate, setSelectedDate] = useState('all');
@@ -40,7 +40,7 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
     });
   }, [matches, selectedDate, selectedTeam, searchQuery]);
 
-  const matchesByDate = useMemo(() => groupMatchesByDate(filteredMatches), [filteredMatches]);
+  const groups = useMemo(() => buildDisplayGroups(filteredMatches, lang), [filteredMatches, lang]);
 
   return (
     <div className="calendar-page">
@@ -120,16 +120,16 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
       </div>
 
       {/* Schedule Display */}
-      {Object.keys(matchesByDate).length > 0 ? (
+      {groups.length > 0 ? (
         <div className="rounds-container">
-          {Object.entries(matchesByDate).map(([date, dateMatches]) => (
-            <div key={date} className="round-group-card">
+          {groups.map(g => (
+            <div key={g.key} className="round-group-card">
               <div className="round-group-header">
-                <h3>{date === NO_DATE ? t.noDateLabel : formatDateLabel(date, lang)}</h3>
-                <span className="round-match-count">{dateMatches.length} {t.matchesToPlay}</span>
+                <h3>{g.label}</h3>
+                <span className="round-match-count">{g.matches.length} {t.matchesToPlay}</span>
               </div>
               <div className="matches-grid">
-                {dateMatches.map(m => (
+                {g.matches.map(m => (
                   <div key={m.id} className="schedule-match-card">
                     <div className="match-top-meta">
                       <span className="status-pill scheduled">{t.scheduledBadge}</span>

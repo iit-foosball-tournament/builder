@@ -1,5 +1,5 @@
 import { Calendar, Trophy, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
-import { formatDateLabel, matchDate, hasDate, sortByDate } from '../../roundDates';
+import { formatDateLabel, matchDate, hasDate, sortByDate, matchRoundLabel } from '../../roundDates';
 
 function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
   const matches = edition.matches || [];
@@ -138,7 +138,7 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
                       {hasDate(m) ? (
                         <span className="round-badge">{formatDateLabel(matchDate(m), lang)}</span>
                       ) : (
-                        <span className="round-badge no-date-badge">{t.noDateLabel}</span>
+                        <span className="round-badge no-date-badge">{matchRoundLabel(m)}</span>
                       )}
                       {m.time ? <span className="date-badge">{m.time}</span> : null}
                     </div>
@@ -178,7 +178,7 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
                       {hasDate(m) ? (
                         <span className="round-tag">{formatDateLabel(matchDate(m), lang)}</span>
                       ) : (
-                        <span className="round-tag no-date-badge">{t.noDateLabel}</span>
+                        <span className="round-tag no-date-badge">{matchRoundLabel(m)}</span>
                       )}
                       {m.time && <span className="date-tag">{m.time}</span>}
                     </div>

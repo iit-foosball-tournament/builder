@@ -1,6 +1,8 @@
-// Match-date helpers. The "giornata"/matchday system has been removed: a match either
-// carries its own optional 'YYYY-MM-DD' date, or it has none (shown as "still without
-// a date"). All lookups are based on match.date alone.
+// Match date/round helpers.
+// A match optionally carries its own 'YYYY-MM-DD' date (set by the admin) and belongs
+// to an Excel round/giornata (match.roundNum / match.round). For display, matches with a
+// date are grouped under their date (chronologically first); matches without a date are
+// grouped under their Excel giornata.
 
 export const NO_DATE = '__no_date__';
 const WEEKDAY_NAMES_IT = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
@@ -62,4 +64,56 @@ export function formatDateLabel(iso, lang = 'it') {
   const yyyy = d.getUTCFullYear();
   const names = lang === 'en' ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_IT;
   return `${names[d.getUTCDay()]} ${dd}/${mm}/${yyyy}`;
+}
+
+// ****************************************************************************
+// Excel-round (giornata) helpers
+// ****************************************************************************
+
+// Numeric round of a match (from the Excel scheduling). Falls back to Infinity so
+// matches without a round go last.
+export function matchRoundNum(match) {
+  if (match && match.roundNum != null) {
+    const n = Number(match.roundNum);
+    if (!Number.isNaN(n)) return n;
+  }
+  if (match && typeof match.round === 'string') {
+    const n = parseInt(match.round.replace(/\D+/g, ''), 10);
+    if (!Number.isNaN(n)) return n;
+  }
+  return Infinity;
+}
+
+export function matchRoundLabel(match) {
+  const n = matchRoundNum(match);
+  return Number.isFinite(n) ? `Giornata ${n}` : (match && match.round ? match.round : 'Giornata');
+}
+
+// Build ordered display groups: dated matches first (grouped by date, chronologically),
+// then undated matches grouped by their Excel giornata.
+export function buildDisplayGroups(matches, lang = 'it') {
+  const list = matches || [];
+  const groups = [];
+  const dated = list.filter(hasDate);
+  const undated = list.filter(m => !hasDate(m));
+
+  const byDate = groupMatchesByDate(dated);
+  for (const d of Object.keys(byDate).sort()) {
+    groups.push({ type: 'date', key: `date|${d}`, label: formatDateLabel(d, lang), matches: byDate[d] });
+  }
+
+  const byRound = {};
+  for (const m of undated) {
+    const rn = matchRoundNum(m);
+    (byRound[rn] = byRound[rn] || []).push(m);
+  }
+  for (const rn of Object.keys(byRound).map(Number).sort((a, b) => a - b)) {
+    groups.push({
+      type: 'round',
+      key: `round|${rn}`,
+      label: Number.isFinite(rn) ? `Giornata ${rn}` : 'Giornata',
+      matches: byRound[rn]
+    });
+  }
+  return groups;
 }

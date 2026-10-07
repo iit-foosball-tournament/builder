@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Flame, Filter, Search, Shield, CheckCircle, Clock, Trophy } from 'lucide-react';
-import { formatDateLabel, matchDate, matchDateKey, groupMatchesByDate, NO_DATE } from '../../roundDates';
+import { Flame, Filter, Search, Shield, Clock, Trophy } from 'lucide-react';
+import { formatDateLabel, matchDate, matchDateKey, buildDisplayGroups, NO_DATE } from '../../roundDates';
 
 function PublicResults({ edition, getTeamColor, t, lang }) {
   const [selectedDate, setSelectedDate] = useState('all');
@@ -40,7 +40,7 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
     });
   }, [matches, selectedDate, selectedTeam, searchQuery]);
 
-  const resultsByDate = useMemo(() => groupMatchesByDate(playedMatches), [playedMatches]);
+  const groups = useMemo(() => buildDisplayGroups(playedMatches, lang), [playedMatches, lang]);
 
   return (
     <div className="results-page">
@@ -122,14 +122,14 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
       {/* Results Display */}
       {playedMatches.length > 0 ? (
         <div className="rounds-container">
-          {Object.entries(resultsByDate).map(([date, dateResults]) => (
-            <div key={date} className="round-group-card">
+          {groups.map(g => (
+            <div key={g.key} className="round-group-card">
               <div className="round-group-header">
-                <h3>{date === NO_DATE ? t.noDateLabel : formatDateLabel(date, lang)}</h3>
-                <span className="round-match-count">{dateResults.length} {t.completedMatchesLabel}</span>
+                <h3>{g.label}</h3>
+                <span className="round-match-count">{g.matches.length} {t.completedMatchesLabel}</span>
               </div>
               <div className="results-grid">
-                {dateResults.map(m => {
+                {g.matches.map(m => {
                   const s1 = parseInt(m.score1, 10);
                   const s2 = parseInt(m.score2, 10);
                   const isDraw = s1 === s2;
@@ -139,9 +139,6 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
                   return (
                     <div key={m.id} className="result-match-card">
                       <div className="result-meta-top">
-                        <span className="status-pill played">
-                          <CheckCircle size={12} /> {t.statusFinal}
-                        </span>
                         {m.time && (
                           <span className="date-info">
                             <Clock size={12} /> {m.time}

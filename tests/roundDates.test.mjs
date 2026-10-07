@@ -8,6 +8,9 @@ import {
   matchDateKey,
   groupMatchesByDate,
   sortByDate,
+  matchRoundNum,
+  matchRoundLabel,
+  buildDisplayGroups,
   NO_DATE
 } from '../src/roundDates.js';
 import { validateEdition } from '../src/tournamentData.js';
@@ -79,4 +82,31 @@ test('schema still accepts a persisted roundDates map and undated matches', () =
   // it must keep validating so nothing is dropped.
   assert.doesNotThrow(() => validateEdition({ ...base, roundDates: { '1': '2026-10-05' } }));
   assert.doesNotThrow(() => validateEdition(base));
+});
+
+test('matchRoundNum / matchRoundLabel read the Excel giomata', () => {
+  assert.equal(matchRoundNum({ roundNum: 5 }), 5);
+  assert.equal(matchRoundNum({ round: 'Giornata 5' }), 5);
+  assert.equal(matchRoundNum({}), Infinity);
+  assert.equal(matchRoundLabel({ roundNum: 7 }), 'Giornata 7');
+  assert.equal(matchRoundLabel({ round: 'Giornata 3' }), 'Giornata 3');
+});
+
+test('buildDisplayGroups: dated first, then undated under their giomata', () => {
+  const matches = [
+    { id: 'A1', roundNum: 1, date: '' },
+    { id: 'B2', roundNum: 2, date: '2026-10-05' },
+    { id: 'A2', roundNum: 1, date: '' },
+    { id: 'C3', roundNum: 3, date: '2026-10-01' }
+  ];
+  const groups = buildDisplayGroups(matches, 'it');
+  // Dated groups first (chronological), then round groups.
+  assert.deepEqual(groups.map(g => g.type), ['date', 'date', 'round']);
+  assert.equal(groups[0].label, 'Gio 01/10/2026');
+  assert.deepEqual(groups[0].matches.map(m => m.id), ['C3']);
+  assert.equal(groups[1].label, 'Lun 05/10/2026');
+  assert.deepEqual(groups[1].matches.map(m => m.id), ['B2']);
+  // Undated under their giomata
+  assert.equal(groups[2].label, 'Giornata 1');
+  assert.deepEqual(groups[2].matches.map(m => m.id), ['A1', 'A2']);
 });
