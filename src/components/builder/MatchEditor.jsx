@@ -1,21 +1,25 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Filter, CheckCircle2, Clock, RotateCcw, Search, Info } from 'lucide-react';
-import { formatDateLabel, getMatchDate } from '../../roundDates';
+import { formatDateLabel, matchDate, hasDate, NO_DATE } from '../../roundDates';
 
-function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch }) {
+function MatchEditor({ matches = [], teams = [], onUpdateMatch }) {
   const [selectedDate, setSelectedDate] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
   const [searchFilter, setSearchFilter] = useState('');
 
-  // Unique dates present among the matches (journal-day dates), in chronological order.
+  // Unique dates explicitly set on the matches, in chronological order.
   const dateOptions = useMemo(() => {
-    const dates = new Set(matches.map(m => getMatchDate(m, roundDates)).filter(Boolean));
+    const dates = new Set(matches.map(m => matchDate(m)).filter(Boolean));
     return Array.from(dates).sort();
-  }, [matches, roundDates]);
+  }, [matches]);
 
-  // Filter matches by date (instead of "Giornata N"), team and free text.
+  // Filter matches by date (or by "senza data"), team and free text.
   const filteredMatches = matches.filter(m => {
-    if (selectedDate !== 'all' && getMatchDate(m, roundDates) !== selectedDate) return false;
+    if (selectedDate === NO_DATE) {
+      if (matchDate(m) !== '') return false;
+    } else if (selectedDate !== 'all' && matchDate(m) !== selectedDate) {
+      return false;
+    }
     if (teamFilter !== 'all') {
       const inTeam = m.team1.toLowerCase() === teamFilter.toLowerCase() ||
                      m.team2.toLowerCase() === teamFilter.toLowerCase();
@@ -70,6 +74,7 @@ function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch 
               className="filter-select"
             >
               <option value="all">Tutte le date</option>
+              <option value={NO_DATE}>Ancora senza data</option>
               {dateOptions.map(date => (
                 <option key={date} value={date}>{formatDateLabel(date)}</option>
               ))}
@@ -116,7 +121,6 @@ function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch 
           const isPlayed = m.status === 'played';
           const s1 = m.score1 !== null ? m.score1 : '';
           const s2 = m.score2 !== null ? m.score2 : '';
-          const matchDate = getMatchDate(m, roundDates);
 
           return (
             <div
@@ -129,8 +133,11 @@ function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch 
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span className="badge badge-primary">{formatDateLabel(matchDate) || m.round}</span>
-                  <span className="text-muted" style={{ fontSize: '12px' }}>{m.round} · Incontro #{m.matchNum}</span>
+                  {hasDate(m) ? (
+                    <span className="badge badge-primary">{formatDateLabel(matchDate(m))}</span>
+                  ) : (
+                    <span className="badge badge-subtle">Ancora senza data</span>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -217,12 +224,16 @@ function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch 
                 </div>
               </div>
 
-              {/* Quick Presets & Scheduling Metadata */}
+              {/* Scheduling metadata: admins set the match date/time here */}
               <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                {/* Time field (the date is the giornata date, managed in Giornate & Date) */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <label style={{ fontSize: '12px', color: '#64748b' }}>Data:</label>
-                  <span className="text-muted" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>{formatDateLabel(matchDate)}</span>
+                  <input
+                    type="date"
+                    value={m.date || ''}
+                    onChange={e => onUpdateMatch(m.id, { date: e.target.value })}
+                    style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  />
                   <label style={{ fontSize: '12px', color: '#64748b' }}>Ora:</label>
                   <input
                     type="time"
@@ -233,7 +244,7 @@ function MatchEditor({ matches = [], teams = [], roundDates = {}, onUpdateMatch 
                 </div>
 
                 <span className="text-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
-                  <Info size={13} /> La data si modifica nella scheda <strong>Giornate &amp; Date</strong>
+                  <Info size={13} /> Lascia la data vuota se non è ancora fissata.
                 </span>
 
                 {/* Quick Presets */}

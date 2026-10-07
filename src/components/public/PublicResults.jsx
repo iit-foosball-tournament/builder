@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Flame, Filter, Search, Shield, CheckCircle, Clock, Trophy } from 'lucide-react';
-import { formatDateLabel, getMatchDate, groupDates } from '../../roundDates';
+import { formatDateLabel, matchDate, matchDateKey, groupMatchesByDate, NO_DATE } from '../../roundDates';
 
 function PublicResults({ edition, getTeamColor, t, lang }) {
   const [selectedDate, setSelectedDate] = useState('all');
@@ -9,18 +9,19 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
 
   const matches = edition.matches || [];
   const teams = edition.teams || [];
-  const roundDates = edition.roundDates || {};
 
   const dateOptions = useMemo(() => {
-    const dates = new Set(matches.map(m => getMatchDate(m, roundDates)).filter(Boolean));
+    const dates = new Set(matches.map(m => matchDate(m)).filter(Boolean));
     return Array.from(dates).sort();
-  }, [matches, roundDates]);
+  }, [matches]);
 
   const playedMatches = useMemo(() => {
     return matches.filter(m => {
       if (m.status !== 'played') return false;
 
-      if (selectedDate !== 'all' && getMatchDate(m, roundDates) !== selectedDate) {
+      if (selectedDate === NO_DATE) {
+        if (matchDate(m) !== '') return false;
+      } else if (selectedDate !== 'all' && matchDateKey(m) !== selectedDate) {
         return false;
       }
 
@@ -37,9 +38,9 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
 
       return true;
     });
-  }, [matches, selectedDate, selectedTeam, searchQuery, roundDates]);
+  }, [matches, selectedDate, selectedTeam, searchQuery]);
 
-  const resultsByDate = useMemo(() => groupDates(playedMatches, roundDates), [playedMatches, roundDates]);
+  const resultsByDate = useMemo(() => groupMatchesByDate(playedMatches), [playedMatches]);
 
   return (
     <div className="results-page">
@@ -64,6 +65,7 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
               className="filter-select"
             >
               <option value="all">{t.allRounds}</option>
+              <option value={NO_DATE}>{t.noDateLabel}</option>
               {dateOptions.map(date => (
                 <option key={date} value={date}>{formatDateLabel(date, lang)}</option>
               ))}
@@ -123,7 +125,7 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
           {Object.entries(resultsByDate).map(([date, dateResults]) => (
             <div key={date} className="round-group-card">
               <div className="round-group-header">
-                <h3>{formatDateLabel(date, lang)}</h3>
+                <h3>{date === NO_DATE ? t.noDateLabel : formatDateLabel(date, lang)}</h3>
                 <span className="round-match-count">{dateResults.length} {t.completedMatchesLabel}</span>
               </div>
               <div className="results-grid">

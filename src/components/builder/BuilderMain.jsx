@@ -3,7 +3,6 @@ import {
   Users,
   Calendar,
   Award,
-  CalendarDays,
   HelpCircle,
   Save,
   CheckCircle2,
@@ -13,7 +12,6 @@ import {
 import TeamEditor from './TeamEditor';
 import MatchEditor from './MatchEditor';
 import KnockoutEditor from './KnockoutEditor';
-import RoundDatesEditor from './RoundDatesEditor';
 import ColleagueGuide from './ColleagueGuide';
 
 function BuilderMain({
@@ -69,13 +67,6 @@ function BuilderMain({
 
   const handleUpdateKnockout = (key, patch) => {
     onUpdateEdition(edition => ({ ...edition, knockout: { ...edition.knockout, [key]: patch } }));
-  };
-
-  const handleUpdateRoundDate = (roundNum, date) => {
-    onUpdateEdition(edition => ({
-      ...edition,
-      roundDates: { ...(edition.roundDates || {}), [String(roundNum)]: date }
-    }));
   };
 
   const messageIsError = saveError;
@@ -135,12 +126,6 @@ function BuilderMain({
           <Award size={16} /> 🏆 Playoff (Top 8)
         </button>
         <button
-          className={`builder-tab-btn ${activeBuilderTab === 'dates' ? 'active' : ''}`}
-          onClick={() => setActiveBuilderTab('dates')}
-        >
-          <CalendarDays size={16} /> 🗓️ Giornate &amp; Date
-        </button>
-        <button
           className={`builder-tab-btn ${activeBuilderTab === 'guide' ? 'active' : ''}`}
           onClick={() => setActiveBuilderTab('guide')}
         >
@@ -150,7 +135,7 @@ function BuilderMain({
 
       <div className="builder-tab-content mt-3">
         {activeBuilderTab === 'matches' && (
-          <MatchEditor matches={matches} teams={teams} roundDates={currentEdition.roundDates || {}} onUpdateMatch={handleUpdateMatch} />
+          <MatchEditor matches={matches} teams={teams} onUpdateMatch={handleUpdateMatch} />
         )}
         {activeBuilderTab === 'teams' && (
           <TeamEditor
@@ -166,13 +151,6 @@ function BuilderMain({
             knockout={knockout}
             standings={standings}
             onUpdateKnockout={handleUpdateKnockout}
-          />
-        )}
-        {activeBuilderTab === 'dates' && (
-          <RoundDatesEditor
-            matches={matches}
-            roundDates={currentEdition.roundDates || {}}
-            onUpdateRoundDate={handleUpdateRoundDate}
           />
         )}
         {activeBuilderTab === 'guide' && <ColleagueGuide />}

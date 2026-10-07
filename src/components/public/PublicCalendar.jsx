@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Filter, Search, MapPin, Clock, Shield } from 'lucide-react';
-import { formatDateLabel, getMatchDate, groupDates } from '../../roundDates';
+import { formatDateLabel, matchDate, hasDate, matchDateKey, groupMatchesByDate, NO_DATE } from '../../roundDates';
 
 function PublicCalendar({ edition, getTeamColor, t, lang }) {
   const [selectedDate, setSelectedDate] = useState('all');
@@ -9,18 +9,19 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
 
   const matches = edition.matches || [];
   const teams = edition.teams || [];
-  const roundDates = edition.roundDates || {};
 
   const dateOptions = useMemo(() => {
-    const dates = new Set(matches.map(m => getMatchDate(m, roundDates)).filter(Boolean));
+    const dates = new Set(matches.map(m => matchDate(m)).filter(Boolean));
     return Array.from(dates).sort();
-  }, [matches, roundDates]);
+  }, [matches]);
 
   const filteredMatches = useMemo(() => {
     return matches.filter(m => {
       if (m.status === 'played') return false;
 
-      if (selectedDate !== 'all' && getMatchDate(m, roundDates) !== selectedDate) {
+      if (selectedDate === NO_DATE) {
+        if (matchDate(m) !== '') return false;
+      } else if (selectedDate !== 'all' && matchDateKey(m) !== selectedDate) {
         return false;
       }
 
@@ -37,9 +38,9 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
 
       return true;
     });
-  }, [matches, selectedDate, selectedTeam, searchQuery, roundDates]);
+  }, [matches, selectedDate, selectedTeam, searchQuery]);
 
-  const matchesByDate = useMemo(() => groupDates(filteredMatches, roundDates), [filteredMatches, roundDates]);
+  const matchesByDate = useMemo(() => groupMatchesByDate(filteredMatches), [filteredMatches]);
 
   return (
     <div className="calendar-page">
@@ -64,6 +65,7 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
               className="filter-select"
             >
               <option value="all">{t.allRounds}</option>
+              <option value={NO_DATE}>{t.noDateLabel}</option>
               {dateOptions.map(date => (
                 <option key={date} value={date}>{formatDateLabel(date, lang)}</option>
               ))}
@@ -123,7 +125,7 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
           {Object.entries(matchesByDate).map(([date, dateMatches]) => (
             <div key={date} className="round-group-card">
               <div className="round-group-header">
-                <h3>{formatDateLabel(date, lang)}</h3>
+                <h3>{date === NO_DATE ? t.noDateLabel : formatDateLabel(date, lang)}</h3>
                 <span className="round-match-count">{dateMatches.length} {t.matchesToPlay}</span>
               </div>
               <div className="matches-grid">
@@ -151,7 +153,7 @@ function PublicCalendar({ edition, getTeamColor, t, lang }) {
                     <div className="match-bottom-bar">
                       <div className="timing-info">
                         <Clock size={13} />
-                        <span>{m.time ? `${formatDateLabel(date, lang)} · ${m.time}` : formatDateLabel(date, lang)}</span>
+                        <span>{hasDate(m) ? formatDateLabel(matchDate(m), lang) : t.noDateLabel}{m.time ? ` · ${m.time}` : ''}</span>
                       </div>
                     </div>
                   </div>

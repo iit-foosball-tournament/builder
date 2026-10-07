@@ -1,14 +1,14 @@
 import { Calendar, Trophy, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
-import { formatDateLabel, getMatchDate } from '../../roundDates';
+import { formatDateLabel, matchDate, hasDate, sortByDate } from '../../roundDates';
 
 function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
   const matches = edition.matches || [];
-  const roundDates = edition.roundDates || {};
-  
+
   const scheduledMatches = matches.filter(m => m.status === 'scheduled');
   const playedMatches = matches.filter(m => m.status === 'played');
 
-  const nextMatches = scheduledMatches.slice(0, 6);
+  // Upcoming: dated matches first (oldest first, even if already past), then undated.
+  const nextMatches = sortByDate(scheduledMatches).slice(0, 6);
   const recentResults = [...playedMatches].reverse().slice(0, 6);
   const topTeams = standings.slice(0, 4);
 
@@ -48,7 +48,7 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-card">
-          <span className="stat-number">29</span>
+          <span className="stat-number">{matches.length}</span>
           <span className="stat-label">{t.statRounds}</span>
         </div>
         <div className="stat-divider"></div>
@@ -135,7 +135,11 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
                 {nextMatches.map(m => (
                   <div key={m.id} className="mini-match-row">
                     <div className="match-meta-tag">
-                      <span className="round-badge">{formatDateLabel(getMatchDate(m, roundDates), lang)}</span>
+                      {hasDate(m) ? (
+                        <span className="round-badge">{formatDateLabel(matchDate(m), lang)}</span>
+                      ) : (
+                        <span className="round-badge no-date-badge">{t.noDateLabel}</span>
+                      )}
                       {m.time ? <span className="date-badge">{m.time}</span> : null}
                     </div>
                     <div className="match-teams-display">
@@ -171,7 +175,11 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
                 {recentResults.map(m => (
                   <div key={m.id} className="result-card">
                     <div className="result-header">
-                      <span className="round-tag">{formatDateLabel(getMatchDate(m, roundDates), lang)}</span>
+                      {hasDate(m) ? (
+                        <span className="round-tag">{formatDateLabel(matchDate(m), lang)}</span>
+                      ) : (
+                        <span className="round-tag no-date-badge">{t.noDateLabel}</span>
+                      )}
                       {m.time && <span className="date-tag">{m.time}</span>}
                     </div>
                     <div className="result-score-line">
