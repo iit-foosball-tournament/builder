@@ -409,6 +409,18 @@ function App() {
     const year = activeEditionYear;
     const userId = session.user.id;
     const edition = structuredClone(snapshot.editions[year]);
+    // A played match (with a result) MUST have a date before saving.
+    const missingDateMatches = (edition.matches || []).filter(m =>
+      m.status === 'played' &&
+      (m.score1 !== null && m.score1 !== undefined) &&
+      (m.score2 !== null && m.score2 !== undefined) &&
+      !String(m.date || '').trim()
+    );
+    if (missingDateMatches.length > 0) {
+      setSaveMessage(`Non puoi salvare: ${missingDateMatches.length} partita/e giocata/e senza data. Nella tab "Risultati & Partite" la data di ogni partita con risultato è evidenziata in rosso: impostala per poter salvare.`);
+      setSaveError(true);
+      return;
+    }
     const selectedPhotos = new Map(pendingPhotos.current);
     const uploaded = [];
     busyRef.current = true;
