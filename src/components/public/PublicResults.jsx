@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Flame, Filter, Search, Shield, Clock, Trophy } from 'lucide-react';
-import { formatDateLabel, matchDate, matchDateKey, buildDisplayGroups, NO_DATE } from '../../roundDates';
+import { formatDateLabel, matchDate, hasDate, matchDateKey, groupMatchesByDate, matchRoundLabel, NO_DATE } from '../../roundDates';
 
 function PublicResults({ edition, getTeamColor, t, lang }) {
   const [selectedDate, setSelectedDate] = useState('all');
@@ -40,7 +40,17 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
     });
   }, [matches, selectedDate, selectedTeam, searchQuery]);
 
-  const groups = useMemo(() => buildDisplayGroups(playedMatches, lang), [playedMatches, lang]);
+  // Results grouped by date, most recent first; undated played matches at the bottom.
+  const groups = useMemo(() => {
+    const dated = playedMatches.filter(hasDate);
+    const undated = playedMatches.filter(m => !hasDate(m));
+    const byDate = groupMatchesByDate(dated);
+    const res = Object.keys(byDate).sort().reverse().map(d => ({
+      type: 'date', key: `date|${d}`, label: formatDateLabel(d, lang), matches: byDate[d]
+    }));
+    if (undated.length) res.push({ type: 'nodate', key: 'nodate', label: t.noDateLabel, matches: undated });
+    return res;
+  }, [playedMatches, lang, t]);
 
   return (
     <div className="results-page">
@@ -139,6 +149,7 @@ function PublicResults({ edition, getTeamColor, t, lang }) {
                   return (
                     <div key={m.id} className="result-match-card">
                       <div className="result-meta-top">
+                        <span className="round-tag">{matchRoundLabel(m)}</span>
                         {m.time && (
                           <span className="date-info">
                             <Clock size={12} /> {m.time}
