@@ -1073,6 +1073,15 @@ body {
   white-space: nowrap;
 }
 
+.team-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
 .score-badge {
   font-size: 16px;
   font-weight: 900;
@@ -1278,6 +1287,41 @@ body {
   align-items: center;
   gap: 6px;
   border-radius: 0 12px 12px 0;
+}
+
+/* Knockout bracket (rendered from edition.knockout) */
+.ko-bracket {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  align-items: flex-start;
+  padding: 18px;
+}
+.ko-column {
+  flex: 1 1 230px;
+  min-width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ko-column-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #15803d;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(21, 128, 61, 0.2);
+  padding-bottom: 6px;
+}
+.ko-column-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ko-match-card {
+  height: auto;
+  min-height: 96px;
 }
 
 .bracket-title-header {

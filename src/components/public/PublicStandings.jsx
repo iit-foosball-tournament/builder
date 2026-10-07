@@ -1,8 +1,89 @@
 import React, { useState } from 'react';
-import { Trophy, Award, Info, ChevronDown, ChevronUp } from 'lucide-react';
-import KnockoutBracket from './KnockoutBracket';
+import { Trophy, Award, Info, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
-function PublicStandings({ edition, standings = [], getTeamName, getTeamColor, t, lang }) {
+// Knockout matches are stored in edition.knockout keyed qf1..fin with simple team-name fields.
+// The public bracket is rendered directly from that real data model.
+const KO_KEYS = {
+  quarters: ['qf1', 'qf2', 'qf3', 'qf4'],
+  semis: ['sf1', 'sf2'],
+  final: ['fin'],
+  third_place: ['f3p']
+};
+
+function KnockoutMatchCard({ match, getTeamColor }) {
+  const played = match && match.status === 'played';
+  const s1 = played ? parseInt(match.score1, 10) : null;
+  const s2 = played ? parseInt(match.score2, 10) : null;
+  const t1w = played && s1 !== null && s2 !== null && s1 > s2;
+  const t2w = played && s1 !== null && s2 !== null && s2 > s1;
+  const name1 = match ? match.team1 : '—';
+  const name2 = match ? match.team2 : '—';
+  return (
+    <div className="result-match-card ko-match-card">
+      <div className="result-meta-top">
+        <span className={`status-pill ${played ? 'played' : 'scheduled'}`}>
+          {played ? <CheckCircle size={12} /> : <Clock size={12} />}
+          {played ? 'Concluso' : 'Da disputare'}
+        </span>
+      </div>
+      <div className="result-scoreboard">
+        <div className={`score-team-row ${t1w ? 'winner-row' : ''}`}>
+          <div className="score-team-info">
+            <span className="team-dot" style={{ backgroundColor: getTeamColor(name1) }}></span>
+            <span className="score-team-name">{name1}</span>
+          </div>
+          <span className={`score-badge ${t1w ? 'score-winner' : ''}`}>{played ? s1 : '–'}</span>
+        </div>
+        <div className={`score-team-row ${t2w ? 'winner-row' : ''}`}>
+          <div className="score-team-info">
+            <span className="team-dot" style={{ backgroundColor: getTeamColor(name2) }}></span>
+            <span className="score-team-name">{name2}</span>
+          </div>
+          <span className={`score-badge ${t2w ? 'score-winner' : ''}`}>{played ? s2 : '–'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KnockoutBracketView({ edition, getTeamColor }) {
+  const knockout = edition && edition.knockout ? edition.knockout : {};
+  const knockoutRounds = (edition && Array.isArray(edition.rounds) ? edition.rounds : [])
+    .filter(rd => rd && rd.type === 'knockout');
+  const columns = knockoutRounds
+    .map(rd => ({
+      label: rd.name,
+      stageType: rd.knockoutType,
+      matches: (KO_KEYS[rd.knockoutType] || []).map(key => knockout[key]).filter(Boolean)
+    }))
+    .filter(col => col.matches.length > 0);
+  // Display order: quarters, semis, final, third-place (main final before the 3rd/4th match).
+  const DISPLAY_ORDER = { quarters: 0, semis: 1, final: 2, third_place: 3 };
+  columns.sort((a, b) => (DISPLAY_ORDER[a.stageType] ?? 9) - (DISPLAY_ORDER[b.stageType] ?? 9));
+  if (columns.length === 0) {
+    for (const type of ['quarters', 'semis', 'final', 'third_place']) {
+      const matches = (KO_KEYS[type] || []).map(key => knockout[key]).filter(Boolean);
+      if (matches.length) columns.push({ label: type, matches });
+    }
+  }
+  if (columns.length === 0) return null;
+  return (
+    <div className="ko-bracket">
+      {columns.map(col => (
+        <div className="ko-column" key={col.label}>
+          <h4 className="ko-column-title">{col.label}</h4>
+          <div className="ko-column-matches">
+            {col.matches.map((m, idx) => (
+              <KnockoutMatchCard key={m.id || `${col.label}-${idx}`} match={m} getTeamColor={getTeamColor} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PublicStandings({ edition, standings = [], getTeamColor, t }) {
   const [showBracket, setShowBracket] = useState(true);
 
   return (
@@ -129,12 +210,7 @@ function PublicStandings({ edition, standings = [], getTeamName, getTeamColor, t
 
           {showBracket && (
             <div className="card-body">
-              <KnockoutBracket 
-                edition={edition} 
-                standings={standings} 
-                getTeamName={getTeamName} 
-                getTeamColor={getTeamColor} 
-              />
+              <KnockoutBracketView edition={edition} getTeamColor={getTeamColor} />
             </div>
           )}
         </div>
