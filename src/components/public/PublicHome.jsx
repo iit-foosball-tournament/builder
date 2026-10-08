@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Calendar, Trophy, Clock, MapPin, Mail, ChevronRight, Award, Flame } from 'lucide-react';
 import { formatDateLabel, matchDate, hasDate, sortByDate, matchRoundLabel } from '../../roundDates';
 
@@ -10,7 +11,7 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
   // Upcoming: dated matches first (oldest first, even if already past), then undated.
   const nextMatches = sortByDate(scheduledMatches).slice(0, 6);
   const recentResults = [...playedMatches].reverse().slice(0, 6);
-  const topTeams = standings.slice(0, 4);
+  const topTeams = standings.slice(0, 10);
 
   return (
     <div className="home-dashboard">
@@ -92,20 +93,31 @@ function PublicHome({ edition, standings = [], onNavigateTab, t, lang }) {
                 </thead>
                 <tbody>
                   {topTeams.map((team, idx) => (
-                    <tr key={team.id || idx} className={idx < 8 ? 'playoff-zone-row' : ''}>
-                      <td>
-                        <span className={`pos-badge pos-${idx + 1}`}>{idx + 1}</span>
-                      </td>
-                      <td className="text-left font-bold team-cell">
-                        <span className="team-color-dot" style={{ backgroundColor: team.logoColor }}></span>
-                        {team.name}
-                      </td>
-                      <td>{team.played || 0}</td>
-                      <td>{team.won || 0}</td>
-                      <td>{team.drawn || 0}</td>
-                      <td>{team.lost || 0}</td>
-                      <td className="points-cell">{team.points || 0}</td>
-                    </tr>
+                    <Fragment key={team.id || idx}>
+                      <tr className={idx < 8 ? 'playoff-zone-row' : ''}>
+                        <td>
+                          <span className={`pos-badge pos-${idx + 1}`}>{idx + 1}</span>
+                        </td>
+                        <td className="text-left font-bold team-cell">
+                          <span className="team-color-dot" style={{ backgroundColor: team.logoColor }}></span>
+                          {team.name}
+                        </td>
+                        <td>{team.played || 0}</td>
+                        <td>{team.won || 0}</td>
+                        <td>{team.drawn || 0}</td>
+                        <td>{team.lost || 0}</td>
+                        <td className="points-cell">{team.points || 0}</td>
+                      </tr>
+                      {idx === 7 && topTeams.length > 8 && (
+                        <tr className="cutoff-divider-row">
+                          <td colSpan={7}>
+                            <div className="cutoff-line-label">
+                              <Award size={13} /> {t.cutoffLine}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

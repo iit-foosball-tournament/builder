@@ -1283,6 +1283,7 @@ body {
   background: rgba(2, 132, 199, 0.06);
 }
 
+.mini-standings-table .cutoff-divider-row td,
 .cutoff-divider-row td {
   padding: 0;
   border-bottom: 2px dashed #0284c7;
